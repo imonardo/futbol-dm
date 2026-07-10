@@ -1,0 +1,2116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fútbol del DM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.47.0/iconfont/tabler-icons.min.css">
+<style>
+  :root{
+    --bg: #F7F5F0;
+    --paper: #FFFFFF;
+    --ink: #161616;
+    --ink-soft: #4A4A47;
+    --muted: #8A8578;
+    --line: #DEDACE;
+    --grass: #4F6B47;
+    --grass-soft: #E3EADD;
+    --terra: #B5482E;
+    --terra-soft: #F6E2DC;
+    --gold: #B8923F;
+    --gold-soft: #F3EBD8;
+    --white-team: #FFFFFF;
+    --white-team-ink: #161616;
+    --black-team: #161616;
+    --black-team-ink: #FFFFFF;
+    --radius: 10px;
+    --shadow: 0 1px 2px rgba(0,0,0,0.04);
+    --font-display: 'Oswald', 'Arial Narrow', sans-serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font-body);
+    font-size:15px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  #app{max-width:1080px;margin:0 auto;padding:0 20px 80px;}
+
+  /* ---- Header ---- */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:22px 0 16px;border-bottom:2px solid var(--ink);margin-bottom:0;
+  }
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-mark{
+    width:34px;height:34px;border-radius:50%;
+    background:conic-gradient(var(--ink) 0 180deg, var(--white-team) 180deg 360deg);
+    border:1.5px solid var(--ink);flex-shrink:0;
+  }
+  .brand-text h1{
+    font-family:var(--font-display);font-weight:600;font-size:22px;letter-spacing:0.3px;
+    margin:0;text-transform:uppercase;
+  }
+  .brand-text p{margin:0;font-size:12px;color:var(--muted);font-family:var(--font-mono);letter-spacing:0.5px;}
+  .topbar-meta{text-align:right;font-size:12px;color:var(--muted);font-family:var(--font-mono);}
+
+  /* ---- Tabs ---- */
+  .tabs{
+    display:flex;gap:2px;margin:0 0 28px;border-bottom:1px solid var(--line);
+    overflow-x:auto;
+  }
+  .tab-btn{
+    font-family:var(--font-display);font-size:13px;letter-spacing:0.5px;text-transform:uppercase;
+    background:none;border:none;padding:14px 18px 12px;cursor:pointer;color:var(--muted);
+    border-bottom:3px solid transparent;white-space:nowrap;font-weight:500;
+  }
+  .tab-btn.active{color:var(--ink);border-bottom-color:var(--grass);}
+  .tab-btn:hover{color:var(--ink);}
+
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* ---- Generic section helpers ---- */
+  .section-title{
+    font-family:var(--font-display);font-size:13px;letter-spacing:1px;text-transform:uppercase;
+    color:var(--muted);margin:0 0 14px;font-weight:500;
+  }
+  .card{
+    background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px 20px;box-shadow:var(--shadow);
+  }
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  @media (max-width:700px){.grid-4{grid-template-columns:repeat(2,1fr);} .grid-2{grid-template-columns:1fr;} .grid-3{grid-template-columns:1fr;}}
+
+  /* ---- Player select / search ---- */
+  .search-input{
+    width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:8px;
+    font-family:var(--font-body);font-size:14px;background:var(--paper);color:var(--ink);
+  }
+  .search-input:focus{outline:none;border-color:var(--grass);}
+
+  .player-pill-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+  .player-pill{
+    display:flex;align-items:center;gap:6px;background:var(--paper);border:1px solid var(--line);
+    border-radius:20px;padding:6px 8px 6px 14px;font-size:13px;cursor:pointer;
+  }
+  .player-pill:hover{border-color:var(--ink);}
+  .player-pill.selected{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .player-pill.pill-team-blanco{background:#fff;color:var(--ink);border:2px solid var(--ink);box-shadow:0 1px 3px rgba(0,0,0,0.12);font-weight:600;padding:5px 7px 5px 13px;}
+  .player-pill.pill-team-negro{background:var(--ink);color:#fff;border:2px solid var(--ink);font-weight:600;padding:5px 7px 5px 13px;}
+  .player-pill.pill-team-none{background:var(--bg);color:var(--muted);border:1px dashed var(--line);}
+  .pill-x{
+    width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,0.08);font-size:12px;
+  }
+  .player-pill.selected .pill-x{background:rgba(255,255,255,0.18);}
+
+  /* ---- Stat cards ---- */
+  .metric{
+    background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px 16px;
+  }
+  .metric .label{font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);margin:0 0 6px;}
+  .metric .value{font-family:var(--font-display);font-size:26px;font-weight:600;margin:0;}
+  .metric .sub{font-size:12px;color:var(--muted);margin-top:2px;}
+
+  .g{color:var(--grass);}
+  .p{color:var(--terra);}
+  .e{color:var(--gold);}
+
+  table.stat-table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  table.stat-table th{
+    text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:var(--muted);
+    padding:8px 10px;border-bottom:1.5px solid var(--ink);font-weight:500;white-space:nowrap;
+  }
+  table.stat-table td{padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  table.stat-table tbody tr:hover{background:var(--grass-soft);cursor:pointer;}
+  table.stat-table th.num,table.stat-table td.num{text-align:right;font-family:var(--font-mono);}
+  .rank-name{font-weight:500;}
+  .sortable{cursor:pointer;user-select:none;}
+  .sortable:hover{color:var(--ink);}
+  .sort-arrow{font-size:9px;margin-left:3px;}
+
+  .table-scroll{overflow-x:auto;}
+
+  /* ---- matriz de parejas ---- */
+  table.matrix-table{border-collapse:collapse;font-size:12.5px;}
+  table.matrix-table th{
+    font-size:11px;font-weight:500;color:var(--ink-soft);padding:6px 8px;white-space:nowrap;
+    border-bottom:1.5px solid var(--ink);text-align:center;
+  }
+  table.matrix-table thead th{writing-mode:vertical-rl;text-orientation:mixed;max-height:120px;vertical-align:bottom;padding-bottom:8px;transform:rotate(180deg);}
+  table.matrix-table tbody th{writing-mode:horizontal-tb;text-align:right;border-right:1.5px solid var(--ink);border-bottom:1px solid var(--line);padding-right:10px;}
+  table.matrix-table td{
+    padding:7px 9px;text-align:center;font-family:var(--font-mono);border-bottom:1px solid var(--line);
+    border-right:1px solid var(--line);white-space:nowrap;min-width:46px;
+  }
+  table.matrix-table .matrix-diag{background:repeating-linear-gradient(45deg, var(--line) 0, var(--line) 1px, transparent 1px, transparent 6px);}
+  .matrix-subtext{font-size:9px;color:var(--muted);font-family:var(--font-mono);margin-top:1px;}
+
+  /* ---- barra de color blanco/negro ---- */
+  .color-bar{
+    display:flex;width:100%;height:14px;border-radius:4px;overflow:hidden;border:1px solid var(--ink);
+  }
+  .color-bar-blanco{background:#fff;}
+  .color-bar-negro{background:var(--ink);}
+
+  /* ---- team badges y pills de asignacion A/B ---- */
+  .team-badge-A,.team-badge-B{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:24px;height:24px;border-radius:6px;font-family:var(--font-display);font-size:13px;font-weight:700;
+  }
+  .team-badge-A{background:var(--grass);color:#fff;}
+  .team-badge-B{background:var(--terra);color:#fff;}
+  .pill-asig-A{background:var(--grass-soft)!important;color:var(--grass)!important;border-color:var(--grass)!important;font-weight:600;}
+  .pill-asig-B{background:var(--terra-soft)!important;color:var(--terra)!important;border-color:var(--terra)!important;font-weight:600;}
+
+  /* ---- streak chips ---- */
+  .streak-chip{
+    display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;
+    font-size:11px;font-weight:600;font-family:var(--font-mono);
+  }
+  .chip-G{background:var(--grass-soft);color:var(--grass);}
+  .chip-E{background:var(--gold-soft);color:var(--gold);}
+  .chip-P{background:var(--terra-soft);color:var(--terra);}
+  .chip-X{background:var(--bg);color:var(--muted);border:1px dashed var(--line);}
+
+  .form-strip{display:flex;gap:4px;}
+
+  /* ---- chip dividido J/C + resultado (parejas) ---- */
+  .dual-chip{
+    display:flex;flex-direction:column;width:24px;height:30px;border-radius:5px;overflow:hidden;
+    font-family:var(--font-mono);font-weight:600;
+  }
+  .dual-chip-top{
+    flex:1;display:flex;align-items:center;justify-content:center;font-size:9px;
+    background:#e4e1d8;color:var(--ink-soft);
+  }
+  .dual-chip-top.tipo-C{background:var(--ink);color:#fff;}
+  .dual-chip-bottom{flex:1;display:flex;align-items:center;justify-content:center;font-size:11px;}
+
+  /* ---- buttons ---- */
+  button.btn{
+    font-family:var(--font-body);font-size:13.5px;font-weight:500;padding:9px 16px;
+    border-radius:8px;border:1px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer;
+  }
+  button.btn:hover{background:#000;}
+  button.btn.secondary{background:var(--paper);color:var(--ink);border-color:var(--line);}
+  button.btn.secondary:hover{border-color:var(--ink);}
+  button.btn.danger{background:var(--paper);color:var(--terra);border-color:var(--terra-soft);}
+  button.btn.danger:hover{background:var(--terra-soft);}
+  button.btn:disabled{opacity:0.4;cursor:not-allowed;}
+
+  input[type=text],input[type=password],input[type=date],input[type=number],select{
+    font-family:var(--font-body);font-size:14px;padding:9px 12px;border:1px solid var(--line);
+    border-radius:8px;background:var(--paper);color:var(--ink);
+  }
+  input:focus,select:focus{outline:none;border-color:var(--grass);}
+  label.field-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;}
+
+  .empty-state{
+    text-align:center;padding:50px 20px;color:var(--muted);
+  }
+  .empty-state .ti{font-size:32px;margin-bottom:10px;display:block;}
+
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:#fff;padding:10px 20px;border-radius:8px;font-size:13.5px;
+    box-shadow:0 4px 16px rgba(0,0,0,0.2);z-index:200;opacity:0;transition:opacity 0.2s;pointer-events:none;
+  }
+  .toast.show{opacity:1;}
+
+  .loading-wrap{display:flex;align-items:center;justify-content:center;padding:60px;color:var(--muted);font-size:13px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="loading-wrap" id="boot-loading">Cargando datos del Fútbol del DM…</div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const SEED_DATA = {"players":["Ivo","Nuss","German","Charly","Ale","Santi","PabloB","Nacho Ceresa","Tincho Mereb","Maxi","Joaco DP","Negri","Mansilla","Chehebar","Gonzo (Ivo)","Chino Zaninovich","Mati (Ivo)","Kordon","Nacho Cordoba","Freddy (Ivo)","Ciro","PabloV","Colo","Juan Cruz","Felipe","Piombo","Mauro","Nico","Dev","Marco (Ivo)","Agas (Ivo)","Ariel","Elías","Hipólito","Matsu (Ivo)","Wilmar","Dami (Ivo)","Mauro (Ivo)","Delpe","Tincho (Ivo)","Rossi","Mateo","Nico Del Grosso","Seba","Guido","Juncal","Manu Nores","MatiD (Ivo)","MatiZ","Shai (Ivo)","Dami Yjilioff","Dario","Diego (Dani)","Hermano Mati (Ivo)","Juan G","Lucho (Ivo)","Nahui (Ivo)","Valen (Ivo)","Agustin","Ale (Maxi)","AmigoMati (Ivo)","Beker (Ivo)","Borthy","Camilo (NachoCe)","Camporino Sr","Cristian","Franco (Santi)","Ian (Nacho)","Javi (NachoCe)","Juanma","Leo Lanciano","Lucas","Montero","Pablo (Chileno)","Quitos (Ivo)","Rama (Ivo)","Raul (Delpe)","Sebi (Ivo)","Tincho (Ale)","Valen"],"matches":[{"date":"2022-12-29","golesBlanco":9,"golesNegro":9,"lineup":{"Ivo":0,"Charly":1,"Ale":1,"Tincho Mereb":1,"Chehebar":1,"PabloV":0,"Nico":0,"Dami (Ivo)":0,"Juncal":0,"Shai (Ivo)":1}},{"date":"2023-01-05","golesBlanco":10,"golesNegro":8,"lineup":{"Ivo":1,"Nuss":0,"Charly":0,"Ale":0,"Tincho Mereb":1,"Maxi":1,"Chehebar":1,"Marco (Ivo)":0,"Matsu (Ivo)":0,"Mauro (Ivo)":1}},{"date":"2023-01-12","golesBlanco":9,"golesNegro":7,"lineup":{"Nuss":1,"Charly":0,"Ale":1,"Santi":1,"Tincho Mereb":0,"Maxi":0,"Negri":0,"PabloV":0,"Delpe":1,"Juncal":1}},{"date":"2023-01-19","golesBlanco":7,"golesNegro":12,"lineup":{"Ivo":1,"Nuss":0,"German":1,"Charly":1,"Ale":0,"Santi":0,"PabloB":0,"Negri":1,"Chehebar":1,"Delpe":0}},{"date":"2023-01-26","golesBlanco":10,"golesNegro":10,"lineup":{"Ivo":1,"Nuss":0,"Ale":1,"Santi":0,"PabloB":1,"Negri":0,"Chehebar":0,"PabloV":1,"Piombo":0,"Delpe":1}},{"date":"2023-02-02","golesBlanco":7,"golesNegro":10,"lineup":{"Ivo":0,"Nuss":1,"Ale":1,"Maxi":0,"Chehebar":1,"Gonzo (Ivo)":0,"Mati (Ivo)":0,"Kordon":1,"Dev":0,"Delpe":1}},{"date":"2023-02-09","golesBlanco":9,"golesNegro":6,"lineup":{"Ivo":1,"Nuss":0,"PabloB":0,"Maxi":1,"Negri":1,"Chehebar":0,"Piombo":1,"Delpe":0,"Montero":0,"Raul (Delpe)":1}},{"date":"2023-02-16","golesBlanco":8,"golesNegro":13,"lineup":{"Ivo":0,"Charly":1,"Ale":1,"PabloB":1,"Maxi":0,"Negri":0,"Chehebar":0,"Piombo":1,"Dario":0,"Agustin":1}},{"date":"2023-03-02","golesBlanco":6,"golesNegro":11,"lineup":{"Ivo":1,"Nuss":1,"Charly":1,"Ale":1,"Santi":1,"PabloB":0,"Maxi":0,"Negri":0,"PabloV":0,"Colo":0}},{"date":"2023-03-09","golesBlanco":8,"golesNegro":6,"lineup":{"Ivo":0,"Nuss":1,"German":0,"Charly":1,"PabloB":1,"Maxi":0,"Kordon":0,"PabloV":0,"Nico":1,"Dev":1}},{"date":"2023-03-16","golesBlanco":7,"golesNegro":7,"lineup":{"Ivo":1,"Nuss":1,"German":0,"Charly":1,"Ale":0,"Santi":1,"PabloB":0,"Maxi":0,"Negri":1,"Dev":0}},{"date":"2023-03-23","golesBlanco":12,"golesNegro":6,"lineup":{"Ivo":0,"Nuss":0,"Ale":0,"Santi":1,"PabloB":0,"Gonzo (Ivo)":1,"Juan Cruz":1,"Dev":1,"Matsu (Ivo)":1,"Rama (Ivo)":0}},{"date":"2023-03-30","golesBlanco":4,"golesNegro":13,"lineup":{"Ivo":0,"Nuss":0,"Ale":1,"PabloB":1,"Tincho Mereb":0,"Mati (Ivo)":1,"Nico":0,"Dev":1,"Dami (Ivo)":0,"Mauro (Ivo)":1}},{"date":"2023-04-06","golesBlanco":7,"golesNegro":6,"lineup":{"Ivo":0,"Nuss":1,"Charly":1,"Ale":1,"Santi":0,"Negri":1,"Mauro":1,"Nico":0,"Delpe":0,"Borthy":0}},{"date":"2023-04-20","golesBlanco":8,"golesNegro":10,"lineup":{"Ivo":1,"Nuss":0,"Charly":0,"Ale":1,"Santi":0,"PabloB":1,"Maxi":0,"Negri":1,"Colo":1,"Dev":0}},{"date":"2023-04-27","golesBlanco":6,"golesNegro":6,"lineup":{"Ivo":0,"Nuss":0,"German":1,"Charly":1,"Ale":1,"Santi":1,"PabloB":0,"Tincho Mereb":1,"Colo":0,"MatiZ":0}},{"date":"2023-05-04","golesBlanco":6,"golesNegro":5,"lineup":{"Ivo":0,"Nuss":0,"Charly":1,"Santi":0,"PabloB":0,"Tincho Mereb":1,"Maxi":0,"Negri":1,"Chehebar":0,"Kordon":1,"Nico":1,"Delpe":1}},{"date":"2023-05-11","golesBlanco":8,"golesNegro":7,"lineup":{"Ivo":1,"Nuss":1,"Charly":1,"Santi":1,"PabloB":0,"Tincho Mereb":0,"Maxi":1,"PabloV":0,"Colo":0,"Juan Cruz":0}},{"date":"2023-05-18","golesBlanco":4,"golesNegro":4,"lineup":{"Ivo":0,"Nuss":0,"Charly":1,"Santi":0,"PabloB":1,"Tincho Mereb":1,"Gonzo (Ivo)":0,"Kordon":0,"PabloV":1,"Colo":1}},{"date":"2023-05-25","golesBlanco":4,"golesNegro":3,"lineup":{"Ivo":1,"Nuss":0,"Charly":1,"Santi":1,"Tincho Mereb":0,"Maxi":0,"Gonzo (Ivo)":1,"PabloV":1,"Juan Cruz":0,"Piombo":0}},{"date":"2023-06-01","golesBlanco":6,"golesNegro":8,"lineup":{"Ivo":1,"Nuss":1,"Ale":0,"Santi":0,"Tincho Mereb":1,"Negri":0,"Gonzo (Ivo)":0,"PabloV":1,"Dev":1,"MatiZ":0}},{"date":"2023-06-08","golesBlanco":5,"golesNegro":7,"lineup":{"Ivo":1,"Nuss":1,"Charly":1,"Santi":0,"PabloB":0,"Tincho Mereb":1,"Maxi":0,"Gonzo (Ivo)":0,"PabloV":0,"Juan Cruz":1}},{"date":"2023-06-15","golesBlanco":6,"golesNegro":7,"lineup":{"Ivo":1,"Nuss":0,"German":0,"Charly":1,"Ale":1,"Santi":1,"Tincho Mereb":0,"Maxi":1,"PabloV":0,"Juan Cruz":0}},{"date":"2023-06-22","golesBlanco":7,"golesNegro":7,"lineup":{"Nuss":0,"German":1,"Ale":1,"PabloB":0,"Tincho Mereb":1,"Maxi":0,"Gonzo (Ivo)":0,"Mati (Ivo)":1,"Matsu (Ivo)":1,"Quitos (Ivo)":0}},{"date":"2023-06-29","golesBlanco":6,"golesNegro":8,"lineup":{"Ivo":1,"Nuss":0,"Charly":1,"Santi":0,"PabloB":1,"Tincho Mereb":1,"Maxi":0,"Negri":0,"PabloV":0,"Juan Cruz":1}},{"date":"2023-07-06","golesBlanco":3,"golesNegro":2,"lineup":{"Ivo":0,"Nuss":1,"Charly":1,"Ale":0,"Santi":0,"PabloB":1,"Maxi":1,"Gonzo (Ivo)":0,"Mauro (Ivo)":0,"Camporino Sr":1}},{"date":"2023-07-13","golesBlanco":7,"golesNegro":3,"lineup":{"Ivo":0,"Nuss":1,"Charly":1,"Ale":1,"Gonzo (Ivo)":0,"Mati (Ivo)":0,"Nacho Cordoba":0,"Juan Cruz":0,"Mauro":1,"Matsu (Ivo)":1}},{"date":"2023-07-20","golesBlanco":12,"golesNegro":6,"lineup":{"Ivo":1,"Nuss":0,"German":0,"Santi":1,"PabloB":1,"Tincho Mereb":0,"Maxi":1,"Gonzo (Ivo)":0,"Mati (Ivo)":0,"Pablo (Chileno)":1}},{"date":"2023-07-27","golesBlanco":7,"golesNegro":6,"lineup":{"Ivo":1,"Nuss":0,"Ale":0,"Santi":1,"Maxi":1,"Chehebar":1,"Mati (Ivo)":0,"Kordon":1,"Freddy (Ivo)":0,"Hermano Mati (Ivo)":0}},{"date":"2023-08-03","golesBlanco":0,"golesNegro":4,"lineup":{"Ivo":0,"Nuss":1,"Charly":1,"Santi":1,"PabloB":1,"Negri":1,"Freddy (Ivo)":0,"Dev":0,"Dario":0,"Valen (Ivo)":0}},{"date":"2023-08-10","golesBlanco":6,"golesNegro":5,"lineup":{"Ivo":0,"Nuss":0,"Ale":1,"Santi":0,"PabloB":1,"Maxi":1,"Mati (Ivo)":0,"Kordon":1,"Freddy (Ivo)":0,"Nico":1}},{"date":"2023-08-17","golesBlanco":11,"golesNegro":5,"lineup":{"Ivo":1,"Nuss":0,"Santi":0,"Tincho Mereb":1,"Maxi":1,"Mati (Ivo)":0,"Nacho Cordoba":1,"Marco (Ivo)":0,"Dami (Ivo)":1,"AmigoMati (Ivo)":0}},{"date":"2023-08-24","golesBlanco":4,"golesNegro":6,"lineup":{"Ivo":0,"Nuss":1,"Charly":0,"Santi":1,"Tincho Mereb":0,"Maxi":1,"Negri":1,"Mansilla":0,"Gonzo (Ivo)":1,"Juan Cruz":0}},{"date":"2023-08-31","golesBlanco":8,"golesNegro":5,"lineup":{"Ivo":0,"Nuss":1,"Charly":1,"Ale":0,"PabloB":1,"Tincho Mereb":0,"Maxi":1,"Mansilla":1,"Nacho Cordoba":0,"Ariel":0}},{"date":"2023-09-07","golesBlanco":8,"golesNegro":6,"lineup":{"Ivo":1,"Nuss":1,"German":1,"PabloB":0,"Tincho Mereb":1,"Maxi":0,"Chehebar":1,"Kordon":0,"Nacho Cordoba":0,"Ariel":0}},{"date":"2023-09-14","golesBlanco":10,"golesNegro":7,"lineup":{"Ivo":0,"Nuss":0,"Ale":0,"PabloB":0,"Tincho Mereb":1,"Maxi":1,"Chehebar":0,"Nacho Cordoba":1,"Juan Cruz":1,"Ariel":1}},{"date":"2023-09-21","golesBlanco":9,"golesNegro":4,"lineup":{"Nuss":1,"German":0,"Charly":1,"Ale":1,"PabloB":0,"Maxi":1,"Gonzo (Ivo)":0,"Mati (Ivo)":0,"Freddy (Ivo)":1,"Dami (Ivo)":0}},{"date":"2023-09-28","golesBlanco":7,"golesNegro":3,"lineup":{"Ivo":0,"Nuss":1,"German":1,"PabloB":0,"Tincho Mereb":1,"Mansilla":0,"Nacho Cordoba":0,"Freddy (Ivo)":1,"Juan Cruz":1,"Dami (Ivo)":0}},{"date":"2023-10-05","golesBlanco":6,"golesNegro":12,"lineup":{"Ivo":0,"Nuss":1,"German":1,"Charly":1,"Ale":1,"PabloB":1,"Tincho Mereb":0,"Maxi":0,"Marco (Ivo)":0,"Nahui (Ivo)":0}},{"date":"2023-10-13","golesBlanco":6,"golesNegro":2,"lineup":{"Ivo":0,"Nuss":1,"German":0,"Ale":1,"Tincho Mereb":1,"Mansilla":1,"Gonzo (Ivo)":0,"Freddy (Ivo)":1,"Dami (Ivo)":0,"Nahui (Ivo)":0}},{"date":"2023-10-19","golesBlanco":7,"golesNegro":10,"lineup":{"Ivo":1,"Nuss":0,"Charly":1,"Ale":1,"Nacho Ceresa":0,"Tincho Mereb":0,"Maxi":0,"Nacho Cordoba":0,"Elías":1,"Hipólito":1}},{"date":"2023-10-26","golesBlanco":12,"golesNegro":5,"lineup":{"Ivo":0,"Nuss":0,"German":0,"Charly":1,"Ale":0,"Tincho Mereb":1,"Maxi":1,"Nacho Cordoba":0,"Ariel":1,"Elías":1}},{"date":"2023-11-02","golesBlanco":14,"golesNegro":13,"lineup":{"Ivo":1,"Nuss":0,"Charly":1,"PabloB":1,"Nacho Ceresa":0,"Maxi":1,"Nacho Cordoba":1,"Ariel":0,"Hipólito":0,"Dami (Ivo)":0}},{"date":"2023-11-09","golesBlanco":7,"golesNegro":9,"lineup":{"Ivo":0,"Nuss":0,"German":0,"Charly":1,"Ale":1,"PabloB":1,"Kordon":1,"Nacho Cordoba":0,"Ariel":1,"Hipólito":0}},{"date":"2023-11-16","golesBlanco":4,"golesNegro":7,"lineup":{"Ivo":0,"Nuss":0,"Ale":1,"Nacho Ceresa":0,"Maxi":1,"Nacho Cordoba":1,"Freddy (Ivo)":1,"Elías":0,"Shai (Ivo)":0,"Valen (Ivo)":1}},{"date":"2023-11-23","golesBlanco":7,"golesNegro":14,"lineup":{"Ivo":0,"Nuss":1,"German":0,"Charly":1,"Ale":1,"Nacho Ceresa":0,"Tincho Mereb":1,"Maxi":0,"Kordon":1,"Ariel":0}},{"date":"2023-11-30","golesBlanco":10,"golesNegro":5,"lineup":{"Ivo":0,"Nuss":0,"German":0,"Charly":1,"Tincho Mereb":1,"Maxi":0,"Negri":1,"Chehebar":0,"Nacho Cordoba":1,"Piombo":1}},{"date":"2023-12-07","golesBlanco":5,"golesNegro":5,"lineup":{"Ivo":0,"Nuss":1,"German":1,"Charly":1,"Ale":0,"Nacho Ceresa":1,"Maxi":0,"Kordon":0,"Nacho Cordoba":1,"Ariel":0}},{"date":"2023-12-14","golesBlanco":8,"golesNegro":8,"lineup":{"Ivo":0,"German":1,"Ale":0,"PabloB":0,"Maxi":1,"Negri":0,"Nacho Cordoba":1,"Mauro":1,"Nico":0,"Ariel":1}},{"date":"2023-12-21","golesBlanco":9,"golesNegro":12,"lineup":{"Ivo":0,"Nuss":0,"Charly":1,"Nacho Ceresa":0,"Tincho Mereb":1,"Maxi":1,"Negri":0,"Nacho Cordoba":0,"Freddy (Ivo)":1,"Elías":1}},{"date":"2023-12-28","golesBlanco":9,"golesNegro":11,"lineup":{"Ivo":0,"Nuss":1,"German":1,"Charly":1,"Ale":0,"Tincho Mereb":0,"Gonzo (Ivo)":1,"Mati (Ivo)":1,"Elías":0,"Dami (Ivo)":0}},{"date":"2024-01-04","golesBlanco":9,"golesNegro":9,"lineup":{"Ivo":0,"Nuss":1,"German":1,"Ale":1,"Nacho Ceresa":0,"Mansilla":0,"Chehebar":0,"Gonzo (Ivo)":1,"Mati (Ivo)":1,"Piombo":0}},{"date":"2024-01-11","golesBlanco":10,"golesNegro":6,"lineup":{"Nuss":0,"Ale":1,"Nacho Ceresa":1,"Mansilla":0,"Gonzo (Ivo)":0,"Mati (Ivo)":0,"Kordon":1,"Nacho Cordoba":1,"Marco (Ivo)":0,"Leo Lanciano":1}},{"date":"2024-01-18","golesBlanco":7,"golesNegro":12,"lineup":{"Ivo":0,"Nuss":1,"German":0,"Ale":1,"PabloB":1,"Nacho Ceresa":1,"Maxi":0,"Chehebar":0,"Gonzo (Ivo)":0,"Piombo":1}},{"date":"2024-01-25","golesBlanco":9,"golesNegro":10,"lineup":{"Ivo":0,"Nuss":1,"German":1,"PabloB":0,"Nacho Ceresa":1,"Tincho Mereb":1,"Nacho Cordoba":0,"Freddy (Ivo)":1,"Marco (Ivo)":0,"Dami Yjilioff":0}},{"date":"2024-02-01","golesBlanco":10,"golesNegro":8,"lineup":{"Ivo":0,"Nuss":0,"Nacho Ceresa":1,"Tincho Mereb":1,"Joaco DP":1,"Negri":0,"Chehebar":1,"Gonzo (Ivo)":0,"Mati (Ivo)":0,"Mauro (Ivo)":1}},{"date":"2024-02-08","golesBlanco":8,"golesNegro":4,"lineup":{"Ivo":0,"Nuss":0,"German":0,"Ale":0,"Nacho Ceresa":1,"Joaco DP":1,"Negri":1,"Nacho Cordoba":0,"Juan Cruz":1,"Nico":1}},{"date":"2024-02-22","golesBlanco":8,"golesNegro":9,"lineup":{"Ivo":0,"Nuss":0,"German":1,"Ale":1,"Nacho Ceresa":1,"Joaco DP":0,"Negri":1,"Mansilla":1,"Nacho Cordoba":0,"Dev":0}},{"date":"2024-02-29","golesBlanco":2,"golesNegro":1,"lineup":{"Ivo":0,"Nuss":0,"Ale":1,"Nacho Ceresa":0,"Negri":1,"Kordon":1,"Nacho Cordoba":1,"Dev":0,"Hipólito":1,"Juanma":0}},{"date":"2024-03-07","golesBlanco":4,"golesNegro":5,"lineup":{"Ivo":0,"Nuss":1,"Ale":1,"Santi":0,"PabloB":1,"Mati (Ivo)":0,"Nacho Cordoba":1,"Marco (Ivo)":0,"Tincho (Ivo)":0,"Ian (Nacho)":1}},{"date":"2024-03-14","golesBlanco":4,"golesNegro":7,"lineup":{"Ivo":0,"Nuss":1,"German":0,"Ale":1,"Santi":1,"Negri":0,"Marco (Ivo)":0,"Matsu (Ivo)":0,"Mauro (Ivo)":1,"Tincho (Ivo)":1}},{"date":"2024-03-21","golesBlanco":15,"golesNegro":10,"lineup":{"Ivo":1,"Nuss":1,"German":0,"Ale":0,"Santi":1,"Nacho Ceresa":0,"Negri":1,"Mati (Ivo)":1,"Nacho Cordoba":0,"Franco (Santi)":0}},{"date":"2024-03-28","golesBlanco":6,"golesNegro":4,"lineup":{"Ivo":0,"Nuss":1,"Santi":1,"Gonzo (Ivo)":0,"Freddy (Ivo)":1,"Agas (Ivo)":0,"Mauro (Ivo)":1,"Tincho (Ivo)":1,"MatiD (Ivo)":0,"Beker (Ivo)":0}},{"date":"2024-04-04","golesBlanco":12,"golesNegro":9,"lineup":{"Ivo":0,"Nuss":1,"Ale":0,"Santi":1,"Nacho Ceresa":1,"Joaco DP":0,"Negri":1,"Kordon":1,"Nacho Cordoba":0,"Manu Nores":0}},{"date":"2024-04-11","golesBlanco":6,"golesNegro":7,"lineup":{"Nuss":1,"Ale":0,"PabloB":0,"Nacho Ceresa":0,"Negri":1,"Mansilla":0,"Gonzo (Ivo)":1,"Mati (Ivo)":1,"Diego (Dani)":0,"Hermano Mati (Ivo)":1}},{"date":"2024-04-18","golesBlanco":4,"golesNegro":7,"lineup":{"Ivo":0,"Nuss":1,"German":1,"Santi":1,"PabloB":0,"Nacho Ceresa":0,"Mansilla":1,"Gonzo (Ivo)":1,"Marco (Ivo)":0,"Manu Nores":0}},{"date":"2024-04-25","golesBlanco":8,"golesNegro":4,"lineup":{"Ivo":0,"Nuss":1,"German":1,"Santi":1,"PabloB":0,"Maxi":1,"Gonzo (Ivo)":0,"Mati (Ivo)":1,"Nacho Cordoba":0,"Colo":0}},{"date":"2024-05-02","golesBlanco":9,"golesNegro":6,"lineup":{"Ivo":0,"Nuss":0,"German":0,"Ale":1,"Santi":1,"PabloB":1,"Tincho Mereb":0,"Negri":1,"Gonzo (Ivo)":0,"Mati (Ivo)":1}},{"date":"2024-05-09","golesBlanco":15,"golesNegro":10,"lineup":{"Ivo":1,"Nuss":0,"Santi":0,"PabloB":1,"Nacho Ceresa":1,"Chehebar":0,"Freddy (Ivo)":1,"Colo":0,"Mauro (Ivo)":1,"Manu Nores":0}},{"date":"2024-05-16","golesBlanco":12,"golesNegro":15,"lineup":{"Ivo":1,"Nuss":0,"German":1,"Ale":1,"Santi":0,"PabloB":1,"Nacho Ceresa":0,"Maxi":1,"Negri":0,"Camilo (NachoCe)":0}},{"date":"2024-05-23","golesBlanco":7,"golesNegro":3,"lineup":{"Ivo":0,"Nuss":1,"German":1,"Santi":1,"PabloB":0,"Maxi":1,"Kordon":0,"Nacho Cordoba":0,"Colo":0,"Juan Cruz":1}},{"date":"2024-06-06","golesBlanco":5,"golesNegro":7,"lineup":{"Ivo":1,"Nuss":0,"Santi":0,"PabloB":1,"Nacho Ceresa":0,"Joaco DP":0,"Gonzo (Ivo)":1,"Mati (Ivo)":1,"Agas (Ivo)":1,"MatiD (Ivo)":0}},{"date":"2024-06-13","golesBlanco":4,"golesNegro":7,"lineup":{"Ivo":0,"Nuss":1,"German":1,"Santi":0,"PabloB":1,"Nacho Ceresa":0,"Chehebar":0,"Gonzo (Ivo)":1,"Mati (Ivo)":1,"MatiD (Ivo)":0}},{"date":"2024-06-20","golesBlanco":7,"golesNegro":7,"lineup":{"Ivo":0,"Nuss":1,"German":1,"Charly":1,"Santi":0,"Maxi":1,"Negri":0,"Gonzo (Ivo)":0,"Freddy (Ivo)":1,"Tincho (Ivo)":0}},{"date":"2024-06-27","golesBlanco":5,"golesNegro":6,"lineup":{"Ivo":1,"Nuss":0,"Ale":0,"Santi":1,"PabloB":0,"Nacho Ceresa":1,"Maxi":0,"Joaco DP":0,"PabloV":1,"Colo":1}},{"date":"2024-07-04","golesBlanco":2,"golesNegro":0,"lineup":{"Ivo":0,"Nuss":1,"Santi":1,"PabloB":0,"Nacho Ceresa":0,"Maxi":1,"Negri":1,"Chehebar":0,"PabloV":1,"Dami Yjilioff":0}},{"date":"2024-07-11","golesBlanco":1,"golesNegro":11,"lineup":{"Ivo":1,"Nuss":0,"German":0,"Ale":0,"Santi":0,"Maxi":1,"Kordon":0,"PabloV":1,"Mauro (Ivo)":1,"Tincho (Ivo)":1}},{"date":"2024-07-18","golesBlanco":9,"golesNegro":9,"lineup":{"Ivo":0,"Nuss":1,"Santi":1,"Nacho Ceresa":1,"Joaco DP":0,"Negri":0,"Mansilla":1,"Chehebar":1,"Gonzo (Ivo)":0,"PabloV":0}},{"date":"2024-07-25","golesBlanco":9,"golesNegro":10,"lineup":{"Ivo":0,"Nuss":0,"German":1,"Nacho Ceresa":0,"Joaco DP":1,"Negri":0,"Chehebar":0,"Gonzo (Ivo)":1,"Nacho Cordoba":1,"Shai (Ivo)":1}},{"date":"2024-08-01","golesBlanco":7,"golesNegro":8,"lineup":{"Ivo":1,"Nuss":0,"German":1,"Charly":1,"Nacho Ceresa":0,"Maxi":0,"Joaco DP":1,"Negri":0,"Mansilla":0,"PabloV":1}},{"date":"2024-08-08","golesBlanco":9,"golesNegro":4,"lineup":{"Ivo":0,"Nuss":1,"German":0,"Charly":1,"Tincho Mereb":1,"Maxi":0,"Joaco DP":0,"Chehebar":0,"Kordon":1,"PabloV":1}},{"date":"2024-08-15","golesBlanco":8,"golesNegro":7,"lineup":{"Ivo":1,"Nuss":0,"German":1,"Charly":1,"PabloB":0,"Nacho Ceresa":0,"Maxi":0,"Negri":0,"Mansilla":1,"Nico":1}},{"date":"2024-08-22","golesBlanco":3,"golesNegro":11,"lineup":{"Ivo":0,"Nuss":0,"Charly":1,"Ale":1,"PabloB":1,"Nacho Ceresa":0,"Joaco DP":1,"Mansilla":0,"Freddy (Ivo)":1,"Javi (NachoCe)":0}},{"date":"2024-08-29","golesBlanco":12,"golesNegro":8,"lineup":{"Ivo":0,"Nuss":0,"German":0,"Charly":1,"Nacho Ceresa":1,"Maxi":0,"Joaco DP":0,"Negri":1,"Hipólito":1,"Rossi":1}},{"date":"2024-09-05","golesBlanco":3,"golesNegro":7,"lineup":{"Ivo":1,"Nuss":1,"Charly":1,"Santi":0,"Nacho Ceresa":0,"Maxi":0,"Mansilla":1,"Gonzo (Ivo)":0,"Mati (Ivo)":1,"Rossi":0}},{"date":"2024-09-12","golesBlanco":12,"golesNegro":7,"lineup":{"Ivo":1,"Nuss":0,"Charly":1,"Ale":0,"Santi":1,"PabloB":0,"Negri":1,"Gonzo (Ivo)":0,"Mati (Ivo)":1,"Hipólito":0}},{"date":"2024-09-19","golesBlanco":6,"golesNegro":7,"lineup":{"Ivo":1,"Nuss":1,"German":0,"Maxi":0,"Joaco DP":0,"Mansilla":0,"Gonzo (Ivo)":1,"Mati (Ivo)":0,"Juan Cruz":1,"Wilmar":1}},{"date":"2024-09-26","golesBlanco":9,"golesNegro":5,"lineup":{"Ivo":1,"Nuss":0,"German":0,"Santi":1,"Joaco DP":0,"Negri":1,"Mansilla":0,"Gonzo (Ivo)":1,"Mati (Ivo)":1,"Wilmar":0}},{"date":"2024-10-03","golesBlanco":7,"golesNegro":10,"lineup":{"Ivo":0,"Nuss":1,"German":0,"Charly":1,"Santi":1,"Nacho Ceresa":1,"Maxi":0,"Joaco DP":0,"Mansilla":1,"Kordon":0}},{"date":"2024-10-10","golesBlanco":11,"golesNegro":8,"lineup":{"Ivo":0,"Nuss":0,"German":1,"Charly":1,"Ale":0,"Maxi":1,"Joaco DP":1,"Negri":0,"PabloV":1,"Colo":0}},{"date":"2024-10-17","golesBlanco":9,"golesNegro":11,"lineup":{"Ivo":1,"German":0,"Charly":1,"Ale":0,"PabloB":0,"Nacho Ceresa":0,"Joaco DP":1,"Negri":1,"Colo":0,"Wilmar":1}},{"date":"2024-10-24","golesBlanco":6,"golesNegro":10,"lineup":{"Ivo":1,"Nuss":1,"German":0,"Charly":1,"Ale":0,"Maxi":0,"Joaco DP":0,"Mansilla":0,"Kordon":1,"Wilmar":1}},{"date":"2024-10-31","golesBlanco":9,"golesNegro":5,"lineup":{"Ivo":0,"Nuss":1,"Charly":1,"Nacho Ceresa":0,"Maxi":0,"Negri":1,"Mansilla":0,"Mati (Ivo)":1,"PabloV":1,"Wilmar":0}},{"date":"2024-11-07","golesBlanco":5,"golesNegro":5,"lineup":{"Ivo":0,"Nuss":0,"Charly":1,"PabloB":0,"Mansilla":0,"Kordon":1,"Colo":0,"Mauro":1,"Hipólito":1,"Wilmar":1}},{"date":"2024-11-14","golesBlanco":7,"golesNegro":5,"lineup":{"Ivo":0,"Nuss":1,"German":0,"Nacho Ceresa":0,"Maxi":1,"Negri":0,"Mansilla":1,"Nacho Cordoba":1,"Wilmar":0,"Guido":1}},{"date":"2024-11-21","golesBlanco":7,"golesNegro":8,"lineup":{"Ivo":0,"Nuss":0,"German":1,"Charly":1,"PabloB":1,"Joaco DP":1,"Mansilla":0,"Colo":1,"Wilmar":0,"Rossi":0}},{"date":"2024-11-28","golesBlanco":4,"golesNegro":6,"lineup":{"Ivo":1,"Nuss":0,"German":0,"Charly":1,"Ale":0,"Nacho Ceresa":0,"Joaco DP":1,"Negri":1,"Mansilla":0,"Wilmar":1}},{"date":"2024-12-05","golesBlanco":4,"golesNegro":4,"lineup":{"Ivo":0,"Nuss":1,"German":0,"Charly":0,"Mansilla":1,"Gonzo (Ivo)":1,"Mati (Ivo)":0,"Marco (Ivo)":1,"Hipólito":1,"Tincho (Ivo)":0}},{"date":"2024-12-12","golesBlanco":9,"golesNegro":7,"lineup":{"Ivo":0,"Nuss":1,"German":0,"Charly":1,"Joaco DP":0,"Negri":1,"Chino Zaninovich":0,"Freddy (Ivo)":1,"Nico Del Grosso":1,"Diego (Dani)":0}},{"date":"2024-12-19","golesBlanco":9,"golesNegro":5,"lineup":{"Ivo":0,"Nuss":0,"German":0,"Charly":1,"PabloB":1,"Nacho Ceresa":1,"Joaco DP":0,"Mansilla":1,"Chino Zaninovich":1,"Mauro":0}},{"date":"2024-12-26","golesBlanco":6,"golesNegro":8,"lineup":{"Ivo":1,"Nuss":0,"German":0,"Charly":1,"Ale":0,"PabloB":1,"Tincho Mereb":0,"Joaco DP":1,"Negri":1,"Mauro":0}},{"date":"2025-01-02","golesBlanco":5,"golesNegro":3,"lineup":{"Nuss":0,"German":1,"Charly":1,"Ale":1,"Tincho Mereb":0,"Joaco DP":0,"Chehebar":1,"Chino Zaninovich":1,"Kordon":0,"Piombo":0}},{"date":"2025-01-09","golesBlanco":8,"golesNegro":9,"lineup":{"Ivo":0,"Nuss":1,"Charly":1,"Nacho Ceresa":1,"Tincho Mereb":1,"Joaco DP":0,"Negri":0,"Mansilla":1,"Chehebar":0,"Mauro":0}},{"date":"2025-01-16","golesBlanco":6,"golesNegro":12,"lineup":{"Ivo":1,"Nuss":1,"Charly":1,"Ale":1,"Nacho Ceresa":0,"Maxi":1,"Negri":0,"Mansilla":0,"Chehebar":0,"Kordon":0}},{"date":"2025-01-23","golesBlanco":10,"golesNegro":12,"lineup":{"Ivo":1,"Nuss":0,"Charly":1,"Ale":1,"Tincho Mereb":0,"Maxi":0,"Mansilla":1,"Piombo":0,"Nico":0,"Elías":1}},{"date":"2025-01-30","golesBlanco":8,"golesNegro":7,"lineup":{"Ivo":0,"Nuss":1,"German":1,"Charly":1,"Tincho Mereb":1,"Mansilla":0,"Gonzo (Ivo)":1,"Chino Zaninovich":0,"Piombo":0,"Hipólito":0}},{"date":"2025-02-06","golesBlanco":8,"golesNegro":9,"lineup":{"Ivo":0,"Nuss":0,"Charly":1,"Ale":1,"Tincho Mereb":0,"Negri":0,"Mansilla":1,"Gonzo (Ivo)":0,"Chino Zaninovich":1,"Elías":1}},{"date":"2025-02-13","golesBlanco":10,"golesNegro":5,"lineup":{"Ivo":0,"Nuss":0,"German":1,"Charly":1,"Ale":1,"Tincho Mereb":1,"Negri":0,"Piombo":0,"Nico":0,"Seba":1}},{"date":"2025-02-20","golesBlanco":8,"golesNegro":7,"lineup":{"Ivo":0,"Nuss":0,"German":0,"Charly":1,"Tincho Mereb":1,"Negri":1,"Mansilla":0,"Gonzo (Ivo)":1,"Mati (Ivo)":0,"Elías":1}},{"date":"2025-02-27","golesBlanco":7,"golesNegro":9,"lineup":{"Nuss":0,"German":1,"Charly":1,"Tincho Mereb":1,"Negri":0,"Chehebar":1,"Gonzo (Ivo)":1,"Mati (Ivo)":0,"Colo":0,"Guido":0}},{"date":"2025-03-06","golesBlanco":8,"golesNegro":8,"lineup":{"Ivo":0,"Nuss":0,"Charly":1,"Ale":1,"Nacho Ceresa":0,"Negri":1,"Mansilla":1,"Gonzo (Ivo)":0,"Elías":0,"Matsu (Ivo)":1}},{"date":"2025-03-13","golesBlanco":11,"golesNegro":10,"lineup":{"Ivo":0,"German":1,"Charly":0,"Nacho Ceresa":1,"Tincho Mereb":0,"Negri":0,"Mansilla":1,"Gonzo (Ivo)":0,"Chino Zaninovich":1,"Juan Cruz":1}},{"date":"2025-03-20","golesBlanco":6,"golesNegro":10,"lineup":{"Ivo":0,"Charly":1,"Ale":0,"Santi":1,"Nacho Ceresa":1,"Tincho Mereb":0,"Joaco DP":1,"Gonzo (Ivo)":1,"Colo":0,"Juan Cruz":0}},{"date":"2025-03-27","golesBlanco":9,"golesNegro":7,"lineup":{"Ivo":0,"Nuss":1,"German":0,"Charly":1,"Santi":0,"Nacho Ceresa":0,"Joaco DP":1,"Mansilla":1,"Chino Zaninovich":1,"Juan Cruz":0}},{"date":"2025-04-03","golesBlanco":8,"golesNegro":5,"lineup":{"Ivo":1,"Nuss":0,"German":0,"Charly":1,"Ale":0,"Santi":1,"Tincho Mereb":0,"Joaco DP":1,"Mansilla":0,"Kordon":1}},{"date":"2025-04-10","golesBlanco":5,"golesNegro":10,"lineup":{"Nuss":0,"Charly":1,"Santi":0,"Nacho Ceresa":1,"Negri":0,"Mansilla":0,"Chehebar":0,"Freddy (Ivo)":1,"Colo":1,"Rossi":1}},{"date":"2025-04-17","golesBlanco":7,"golesNegro":8,"lineup":{"Ivo":0,"Nuss":1,"German":0,"Charly":1,"Santi":1,"Nacho Ceresa":0,"Negri":0,"Gonzo (Ivo)":1,"Chino Zaninovich":1,"Mauro":0}},{"date":"2025-04-24","golesBlanco":5,"golesNegro":5,"lineup":{"Ivo":1,"Nuss":0,"German":1,"Santi":1,"Nacho Ceresa":0,"Joaco DP":1,"Mansilla":0,"Chehebar":1,"Chino Zaninovich":0,"Kordon":0}},{"date":"2025-05-01","golesBlanco":4,"golesNegro":9,"lineup":{"Ivo":0,"Nuss":0,"German":1,"Santi":0,"Nacho Ceresa":1,"Maxi":1,"Mansilla":0,"Freddy (Ivo)":1,"PabloV":0,"Cristian":1}},{"date":"2025-05-08","golesBlanco":8,"golesNegro":6,"lineup":{"Ivo":1,"Ale":0,"Santi":1,"Nacho Ceresa":0,"Joaco DP":1,"Mansilla":0,"Chehebar":0,"Gonzo (Ivo)":1,"Chino Zaninovich":0,"Mati (Ivo)":1}},{"date":"2025-05-15","golesBlanco":7,"golesNegro":9,"lineup":{"Nuss":1,"German":0,"Charly":1,"Ale":0,"Nacho Ceresa":1,"Tincho Mereb":1,"Joaco DP":1,"Mansilla":0,"Chehebar":0,"Felipe":0}},{"date":"2025-05-22","golesBlanco":9,"golesNegro":8,"lineup":{"Ivo":0,"Nuss":1,"German":1,"Ale":1,"Santi":1,"Nacho Ceresa":0,"Joaco DP":1,"Mansilla":0,"Chehebar":0,"Chino Zaninovich":0}},{"date":"2025-05-29","golesBlanco":7,"golesNegro":5,"lineup":{"Ivo":1,"Nuss":0,"German":1,"Ale":1,"Santi":0,"Nacho Ceresa":0,"Joaco DP":0,"Mansilla":0,"Kordon":1,"Freddy (Ivo)":1}},{"date":"2025-06-05","golesBlanco":6,"golesNegro":4,"lineup":{"Ivo":0,"Nuss":0,"German":1,"Ale":0,"Santi":1,"Joaco DP":1,"Mansilla":1,"Chehebar":1,"Chino Zaninovich":0,"Freddy (Ivo)":0}},{"date":"2025-06-12","golesBlanco":10,"golesNegro":8,"lineup":{"Ivo":1,"Nuss":0,"German":0,"Santi":1,"Nacho Ceresa":0,"Joaco DP":1,"Mansilla":0,"Chehebar":0,"Freddy (Ivo)":1,"Matsu (Ivo)":1}},{"date":"2025-06-19","golesBlanco":7,"golesNegro":8,"lineup":{"Ivo":1,"Nuss":0,"German":1,"Charly":1,"Tincho Mereb":0,"Maxi":0,"Chehebar":0,"Chino Zaninovich":0,"Nacho Cordoba":1,"Felipe":1}},{"date":"2025-06-26","golesBlanco":6,"golesNegro":9,"lineup":{"Ivo":0,"Nuss":1,"German":1,"Charly":1,"Nacho Ceresa":0,"Tincho Mereb":1,"Mansilla":0,"Felipe":0,"Matsu (Ivo)":1,"Rossi":0}},{"date":"2025-07-03","golesBlanco":7,"golesNegro":8,"lineup":{"Ivo":1,"Nuss":0,"German":1,"Charly":1,"Santi":1,"Nacho Ceresa":0,"Joaco DP":0,"Chehebar":1,"Chino Zaninovich":0,"Felipe":0}},{"date":"2025-07-10","golesBlanco":5,"golesNegro":8,"lineup":{"Ivo":0,"Nuss":0,"German":0,"Charly":1,"Santi":1,"Nacho Ceresa":1,"Joaco DP":1,"Negri":1,"Gonzo (Ivo)":0,"Chino Zaninovich":0}},{"date":"2025-07-17","golesBlanco":10,"golesNegro":5,"lineup":{"Ivo":0,"Nuss":1,"German":0,"Charly":1,"Ale":1,"Joaco DP":0,"Chino Zaninovich":1,"Ciro":0,"Agas (Ivo)":0,"Tincho (Ale)":1}},{"date":"2025-07-24","golesBlanco":10,"golesNegro":3,"lineup":{"Ivo":0,"Nuss":1,"German":0,"Charly":1,"Ale":1,"Nacho Ceresa":0,"Tincho Mereb":1,"Joaco DP":0,"Negri":1,"Chino Zaninovich":0}},{"date":"2025-07-31","golesBlanco":10,"golesNegro":9,"lineup":{"Ivo":0,"Nuss":1,"German":0,"Charly":1,"Ale":1,"Nacho Ceresa":0,"Joaco DP":0,"Mansilla":1,"Chino Zaninovich":0,"Mauro":1}},{"date":"2025-08-07","golesBlanco":5,"golesNegro":8,"lineup":{"Ivo":1,"Nuss":0,"German":1,"Charly":1,"Ale":0,"Nacho Ceresa":0,"Joaco DP":0,"Felipe":0,"Agas (Ivo)":1,"Sebi (Ivo)":1}},{"date":"2025-08-14","golesBlanco":6,"golesNegro":11,"lineup":{"Ivo":1,"Nuss":0,"German":0,"Charly":1,"Nacho Ceresa":1,"Joaco DP":1,"Chehebar":0,"Chino Zaninovich":1,"Ciro":0,"Juncal":0}},{"date":"2025-08-21","golesBlanco":8,"golesNegro":8,"lineup":{"Nuss":0,"German":0,"Charly":1,"Joaco DP":0,"Chino Zaninovich":1,"Ciro":1,"Mauro":1,"Guido":0,"Lucas":0,"Valen":1}},{"date":"2025-08-28","golesBlanco":7,"golesNegro":6,"lineup":{"Ivo":0,"Nuss":1,"German":1,"Charly":1,"Ale":0,"Santi":0,"PabloB":0,"Nacho Ceresa":0,"Tincho Mereb":1,"Joaco DP":1}},{"date":"2025-09-04","golesBlanco":8,"golesNegro":12,"lineup":{"Ivo":0,"Nuss":0,"German":1,"Charly":1,"Santi":0,"PabloB":1,"Nacho Ceresa":1,"Tincho Mereb":1,"Maxi":0,"Chino Zaninovich":0}},{"date":"2025-09-11","golesBlanco":8,"golesNegro":6,"lineup":{"Ivo":0,"Nuss":0,"German":0,"Charly":1,"Ale":1,"PabloB":1,"Nacho Ceresa":0,"Tincho Mereb":0,"Joaco DP":1,"Chino Zaninovich":1}},{"date":"2025-09-18","golesBlanco":9,"golesNegro":9,"lineup":{"Ivo":0,"Nuss":0,"Santi":1,"PabloB":0,"Tincho Mereb":0,"Joaco DP":0,"Chino Zaninovich":1,"Kordon":1,"Ciro":1,"Matsu (Ivo)":1}},{"date":"2025-09-25","golesBlanco":12,"golesNegro":7,"lineup":{"Ivo":1,"Nuss":1,"German":1,"Santi":1,"PabloB":0,"Nacho Ceresa":0,"Tincho Mereb":0,"Maxi":0,"Joaco DP":1,"Chehebar":0}},{"date":"2025-10-02","golesBlanco":5,"golesNegro":9,"lineup":{"Ivo":0,"Nuss":1,"Santi":1,"PabloB":0,"Nacho Ceresa":1,"Tincho Mereb":1,"Mansilla":0,"Chehebar":1,"Kordon":0,"Ciro":0}},{"date":"2025-10-09","golesBlanco":8,"golesNegro":9,"lineup":{"Ivo":0,"Nuss":1,"Ale":1,"Santi":0,"PabloB":0,"Tincho Mereb":1,"Chehebar":0,"Kordon":1,"Freddy (Ivo)":1,"Ciro":0}},{"date":"2025-10-16","golesBlanco":6,"golesNegro":7,"lineup":{"Ivo":0,"Nuss":1,"Santi":0,"PabloB":1,"Nacho Ceresa":1,"Tincho Mereb":0,"Freddy (Ivo)":0,"Ciro":1,"Felipe":1,"Agas (Ivo)":0}},{"date":"2025-10-23","golesBlanco":8,"golesNegro":7,"lineup":{"Ivo":0,"Nuss":1,"Ale":1,"PabloB":1,"Kordon":0,"Freddy (Ivo)":0,"Ciro":1,"Felipe":1,"Agas (Ivo)":0,"Nico Del Grosso":0}},{"date":"2025-10-30","golesBlanco":15,"golesNegro":6,"lineup":{"Ivo":0,"Nuss":0,"Ale":1,"PabloB":0,"Nacho Ceresa":0,"Kordon":1,"Ciro":1,"Agas (Ivo)":1,"Nico Del Grosso":1,"Lucho (Ivo)":0}},{"date":"2025-11-06","golesBlanco":8,"golesNegro":5,"lineup":{"Ivo":1,"Nuss":0,"Santi":0,"PabloB":1,"Nacho Ceresa":0,"Tincho Mereb":0,"Maxi":1,"Mansilla":0,"Felipe":1,"Agas (Ivo)":1}},{"date":"2025-11-13","golesBlanco":5,"golesNegro":8,"lineup":{"Ivo":0,"Nuss":0,"German":0,"Charly":1,"Ale":1,"Santi":0,"PabloB":1,"Maxi":1,"Chino Zaninovich":1,"Ciro":0}},{"date":"2025-11-27","golesBlanco":4,"golesNegro":6,"lineup":{"Ivo":1,"Nuss":1,"German":0,"Charly":1,"Santi":1,"PabloB":1,"Kordon":0,"Freddy (Ivo)":0,"Felipe":0,"Agas (Ivo)":0}},{"date":"2025-12-04","golesBlanco":10,"golesNegro":5,"lineup":{"Nuss":0,"German":0,"Ale":1,"Santi":1,"Joaco DP":0,"Chehebar":1,"Chino Zaninovich":0,"Felipe":1}},{"date":"2025-12-11","golesBlanco":7,"golesNegro":6,"lineup":{"Ivo":0,"Nuss":0,"German":1,"Charly":1,"Santi":1,"PabloB":0,"Joaco DP":0,"Mansilla":1,"Chino Zaninovich":0,"Ciro":1}},{"date":"2025-12-18","golesBlanco":7,"golesNegro":4,"lineup":{"Ivo":0,"Nuss":1,"German":0,"Charly":1,"Ale":0,"Nacho Ceresa":0,"Joaco DP":1,"Chino Zaninovich":1,"Ciro":1,"Felipe":0}},{"date":"2025-12-30","golesBlanco":12,"golesNegro":4,"lineup":{"Ivo":1,"German":1,"Charly":1,"Nacho Ceresa":0,"Negri":1,"Chehebar":0,"Chino Zaninovich":0,"Freddy (Ivo)":0,"Ciro":0,"Piombo":1}},{"date":"2026-01-08","golesBlanco":14,"golesNegro":7,"lineup":{"Ivo":0,"German":0,"Charly":1,"Ale":1,"Negri":1,"Chehebar":1,"Chino Zaninovich":0,"Piombo":0,"Mauro":1,"Lucho (Ivo)":0}},{"date":"2026-01-15","golesBlanco":7,"golesNegro":7,"lineup":{"Ivo":0,"German":0,"Ale":0,"Tincho Mereb":0,"Chehebar":1,"Mati (Ivo)":0,"Freddy (Ivo)":1,"Felipe":1,"Piombo":1,"Mauro":1}},{"date":"2026-01-22","golesBlanco":9,"golesNegro":7,"lineup":{"Ivo":0,"German":1,"Charly":0,"Ale":1,"Joaco DP":0,"Mansilla":1,"Chehebar":1,"Ciro":0,"Piombo":0,"Seba":1}},{"date":"2026-01-29","golesBlanco":5,"golesNegro":10,"lineup":{"Ivo":1,"German":0,"Charly":1,"Ale":1,"Santi":0,"PabloB":1,"Joaco DP":0,"Negri":0,"Chehebar":0,"Chino Zaninovich":1}},{"date":"2026-02-05","golesBlanco":7,"golesNegro":10,"lineup":{"Ivo":0,"German":0,"Charly":1,"Santi":1,"PabloB":0,"Chehebar":0,"Chino Zaninovich":0,"Mati (Ivo)":1,"Ciro":1,"Felipe":1}},{"date":"2026-02-12","golesBlanco":8,"golesNegro":6,"lineup":{"Ivo":1,"German":0,"Charly":1,"PabloB":0,"Joaco DP":0,"Chehebar":0,"Chino Zaninovich":0,"Marco (Ivo)":1,"Tincho (Ivo)":1,"Nico Del Grosso":1}},{"date":"2026-02-19","golesBlanco":4,"golesNegro":3,"lineup":{"Ivo":0,"German":1,"Charly":1,"Santi":0,"PabloB":1,"Joaco DP":0,"Chino Zaninovich":0,"Mati (Ivo)":1,"Ciro":0,"Mateo":1}},{"date":"2026-03-05","golesBlanco":5,"golesNegro":4,"lineup":{"Ivo":0,"German":0,"Charly":1,"Ale":0,"Santi":1,"PabloB":0,"Nacho Ceresa":1,"Felipe":1,"Mauro":0,"Juan G":1}},{"date":"2026-03-12","golesBlanco":6,"golesNegro":8,"lineup":{"Ivo":0,"German":0,"Charly":1,"Santi":0,"Joaco DP":1,"Chehebar":1,"Chino Zaninovich":1,"Freddy (Ivo)":0,"Ciro":0,"MatiZ":1}},{"date":"2026-03-19","golesBlanco":12,"golesNegro":7,"lineup":{"Ivo":1,"Nuss":1,"German":0,"Charly":1,"Ale":0,"Santi":0,"Tincho Mereb":0,"Negri":1,"Chino Zaninovich":1,"Mateo":0}},{"date":"2026-03-26","golesBlanco":11,"golesNegro":5,"lineup":{"Ivo":0,"Nuss":0,"Santi":0,"PabloB":1,"Tincho Mereb":0,"Negri":1,"Ciro":1,"Juan Cruz":1,"Mauro":1,"Mateo":0}},{"date":"2026-04-02","golesBlanco":9,"golesNegro":7,"lineup":{"Nuss":0,"Charly":1,"Joaco DP":1,"Negri":1,"Chino Zaninovich":0,"Ciro":0,"Piombo":0,"Mateo":0,"Seba":1,"Juan G":1}},{"date":"2026-04-09","golesBlanco":3,"golesNegro":9,"lineup":{"Ivo":0,"German":1,"Charly":1,"PabloB":0,"Tincho Mereb":1,"Joaco DP":1,"Negri":0,"Chehebar":0,"Chino Zaninovich":0,"Mauro":1}},{"date":"2026-04-16","golesBlanco":4,"golesNegro":9,"lineup":{"Ivo":0,"Nuss":0,"German":1,"Santi":0,"Tincho Mereb":1,"Joaco DP":1,"Chino Zaninovich":1,"Ciro":1,"Juan Cruz":0,"Felipe":0}},{"date":"2026-04-23","golesBlanco":8,"golesNegro":6,"lineup":{"Ivo":1,"Nuss":0,"German":1,"Charly":1,"Santi":0,"PabloB":1,"Tincho Mereb":1,"Maxi":1,"Chino Zaninovich":0,"Colo":0,"Felipe":0,"Seba":0}},{"date":"2026-04-30","golesBlanco":6,"golesNegro":7,"lineup":{"Ivo":0,"Nuss":0,"German":0,"Charly":1,"Santi":1,"PabloB":1,"Tincho Mereb":0,"Joaco DP":0,"Mati (Ivo)":0,"Ciro":1}},{"date":"2026-05-07","golesBlanco":5,"golesNegro":8,"lineup":{"Ivo":0,"Nuss":0,"German":1,"Ale":0,"Santi":0,"Tincho Mereb":1,"Maxi":1,"Joaco DP":1,"Chino Zaninovich":0,"Colo":1}},{"date":"2026-05-14","golesBlanco":8,"golesNegro":6,"lineup":{"Ivo":0,"Nuss":1,"German":0,"Santi":1,"PabloB":0,"Maxi":1,"Kordon":1,"Ciro":0,"Colo":0,"Ale (Maxi)":1}},{"date":"2026-05-21","golesBlanco":5,"golesNegro":5,"lineup":{"Ivo":0,"Nuss":0,"German":1,"Charly":1,"Santi":1,"Tincho Mereb":0,"Maxi":1,"Joaco DP":0,"Colo":1,"Felipe":0}},{"date":"2026-05-28","golesBlanco":5,"golesNegro":7,"lineup":{"Ivo":1,"Nuss":0,"German":0,"Charly":1,"Ale":0,"Santi":0,"Tincho Mereb":1,"Joaco DP":1,"Chehebar":0,"Chino Zaninovich":1,"Ciro":1}},{"date":"2026-06-04","golesBlanco":5,"golesNegro":7,"lineup":{"Ivo":1,"Ale":0,"Santi":1,"PabloB":1,"Tincho Mereb":0,"Maxi":1,"Chino Zaninovich":0,"Ciro":0,"Felipe":0,"Mateo":1}},{"date":"2026-06-11","golesBlanco":7,"golesNegro":6,"lineup":{"Nuss":1,"German":0,"Charly":1,"Santi":0,"PabloB":0,"Nacho Ceresa":1,"Tincho Mereb":1,"Joaco DP":0,"Chino Zaninovich":1,"Ciro":0}},{"date":"2026-06-25","golesBlanco":9,"golesNegro":6,"lineup":{"Nuss":1,"German":0,"Santi":0,"PabloB":1,"Maxi":0,"Joaco DP":0,"Chehebar":1,"Ciro":0,"Colo":1,"Felipe":1}},{"date":"2026-07-02","golesBlanco":7,"golesNegro":9,"lineup":{"Ivo":1,"Nuss":0,"German":0,"Charly":1,"Santi":0,"PabloB":1,"Tincho Mereb":1,"Maxi":0,"Joaco DP":1,"Chino Zaninovich":0,"Colo":0,"PabloV":1}}],"playerInfo":{"Agas (Ivo)":{"nombre":"Agus","apellido":"Sztrajman","traidoPor":"Ivo Monardo"},"Ivo":{"nombre":"Ivo","apellido":"Monardo","traidoPor":""},"Ale":{"nombre":"","apellido":"Alvarez","traidoPor":""},"AmigoMati (Ivo)":{"nombre":"Amigo Mati","apellido":"","traidoPor":"Ivo Monardo"},"Ariel":{"nombre":"","apellido":"Salor","traidoPor":""},"Beker (Ivo)":{"nombre":"Ari","apellido":"Beker","traidoPor":"Ivo Monardo"},"Dami (Ivo)":{"nombre":"Dami","apellido":"Faingold","traidoPor":"Ivo Monardo"},"Freddy (Ivo)":{"nombre":"Freddy","apellido":"Martinez","traidoPor":"Ivo Monardo"},"Gonzo (Ivo)":{"nombre":"Gonzo","apellido":"Varela","traidoPor":"Ivo Monardo"},"Hermano Mati (Ivo)":{"nombre":"Marian","apellido":"Breiman","traidoPor":"Ivo Monardo"},"Lucho (Ivo)":{"nombre":"Lucho","apellido":"Burasi","traidoPor":"Ivo Monardo"},"Marco (Ivo)":{"nombre":"Marco","apellido":"Di Croce","traidoPor":"Ivo Monardo"},"Tincho (Ivo)":{"nombre":"Tincho","apellido":"Pedrolo","traidoPor":"Ivo Monardo"},"Shai (Ivo)":{"nombre":"Shai","apellido":"Bianchi","traidoPor":"Ivo Monardo"},"Sebi (Ivo)":{"nombre":"Sebi","apellido":"Ferrari","traidoPor":"Ivo Monardo"},"Mati (Ivo)":{"nombre":"Mati","apellido":"Breiman","traidoPor":"Ivo Monardo"},"MatiD (Ivo)":{"nombre":"Mati","apellido":"Dolgui","traidoPor":"Ivo Monardo"},"Matsu (Ivo)":{"nombre":"Nico","apellido":"Matsu","traidoPor":"Ivo Monardo"},"Nahui (Ivo)":{"nombre":"Nahui","apellido":"Raspanti","traidoPor":"Ivo Monardo"},"Wilmar":{"nombre":"Wilmar","apellido":"","traidoPor":""},"Valen (Ivo)":{"nombre":"Valen","apellido":"Lucena","traidoPor":"Ivo Monardo"},"Tincho Mereb":{"nombre":"Tincho","apellido":"Mereb","traidoPor":""},"Tincho (Ale)":{"nombre":"Tincho","apellido":"","traidoPor":"Ale Alvarez"},"Seba":{"nombre":"Seba","apellido":"Velazquez","traidoPor":""},"Santi":{"nombre":"Santi","apellido":"Laplagne","traidoPor":""},"Rossi":{"nombre":"Nacho","apellido":"Rossi","traidoPor":""},"Rama (Ivo)":{"nombre":"Rama","apellido":"Doti","traidoPor":"Ivo Monardo"},"Quitos (Ivo)":{"nombre":"Quitos","apellido":"Caccavaio","traidoPor":"Ivo Monardo"},"Piombo":{"nombre":"Juan","apellido":"Piombo","traidoPor":""},"PabloV":{"nombre":"Pablo","apellido":"Vena","traidoPor":""},"PabloB":{"nombre":"Pablo","apellido":"Blanc","traidoPor":""},"Pablo (Chileno)":{"nombre":"Pablo","apellido":"Galaz","traidoPor":"Ivo Monardo"},"Nuss":{"nombre":"Dani","apellido":"Nuss","traidoPor":""},"Nico Del Grosso":{"nombre":"Nico","apellido":"Del Gorsso","traidoPor":""},"Nico":{"nombre":"Nico","apellido":"Sirolli","traidoPor":""},"Negri":{"nombre":"Marian","apellido":"Negri","traidoPor":""},"Nacho Cordoba":{"nombre":"Nacho","apellido":"Córdoba","traidoPor":""},"Nacho Ceresa":{"nombre":"Nacho","apellido":"Ceresa","traidoPor":""},"Montero":{"nombre":"","apellido":"Montero","traidoPor":""},"Chehebar":{"nombre":"Marian","apellido":"Chehebar","traidoPor":""}}};
+
+/* ============== MOTOR DE DATOS Y ESTADISTICAS ============== */
+
+function resultadoEquipo(m, equipo){
+  if(m.golesBlanco === m.golesNegro) return 'E';
+  if(equipo === 0) return m.golesBlanco > m.golesNegro ? 'G' : 'P';
+  return m.golesNegro > m.golesBlanco ? 'G' : 'P';
+}
+
+function partidosDeJugador(matches, jugador){
+  return matches
+    .filter(m => jugador in m.lineup)
+    .map(m => {
+      const equipo = m.lineup[jugador];
+      return { match: m, equipo, resultado: resultadoEquipo(m, equipo) };
+    });
+}
+
+function calcularRachas(resultados){
+  let maxG=0, maxE=0, maxP=0;
+  let curG=0, curE=0, curP=0;
+  for(const r of resultados){
+    if(r==='G'){ curG++; curE=0; curP=0; }
+    else if(r==='E'){ curE++; curG=0; curP=0; }
+    else { curP++; curG=0; curE=0; }
+    if(curG>maxG) maxG=curG;
+    if(curE>maxE) maxE=curE;
+    if(curP>maxP) maxP=curP;
+  }
+  let actualTipo=null, actualCant=0;
+  if(resultados.length>0){
+    actualTipo = resultados[resultados.length-1];
+    actualCant = 1;
+    for(let i=resultados.length-2;i>=0;i--){
+      if(resultados[i]===actualTipo) actualCant++;
+      else break;
+    }
+  }
+  return {maxG,maxE,maxP,actual:{tipo:actualTipo,cant:actualCant}};
+}
+
+function statsIndividuales(matches, jugador){
+  const pj = partidosDeJugador(matches, jugador);
+  const J = pj.length;
+  const G = pj.filter(x=>x.resultado==='G').length;
+  const E = pj.filter(x=>x.resultado==='E').length;
+  const P = pj.filter(x=>x.resultado==='P').length;
+  const resultadosOrdenados = pj.map(x=>x.resultado);
+  const rachas = calcularRachas(resultadosOrdenados);
+  let golesFavor = 0, golesContra = 0;
+  for(const x of pj){
+    const gf = x.equipo===0 ? x.match.golesBlanco : x.match.golesNegro;
+    const gc = x.equipo===0 ? x.match.golesNegro : x.match.golesBlanco;
+    golesFavor += gf; golesContra += gc;
+  }
+  return {
+    jugador, J, G, E, P,
+    ratioGP: (G+P)>0 ? G/(G+P) : null,
+    pctPuntos: J>0 ? (3*G+E)/(3*J) : null,
+    pctG: J>0 ? G/J : null,
+    pctE: J>0 ? E/J : null,
+    pctP: J>0 ? P/J : null,
+    rachas,
+    historial: resultadosOrdenados,
+    historialDetalle: pj,
+    ultimaFecha: J>0 ? pj[pj.length-1].match.date : null,
+    promGolesFavor: J>0 ? golesFavor/J : null,
+    promGolesContra: J>0 ? golesContra/J : null
+  };
+}
+
+function statsPareja(matches, jugA, jugB){
+  const ambos = matches.filter(m => jugA in m.lineup && jugB in m.lineup);
+  const juntos = [];
+  const contra = [];
+  const secuenciaJC = [];
+  for(const m of ambos){
+    const eqA = m.lineup[jugA], eqB = m.lineup[jugB];
+    if(eqA === eqB){
+      juntos.push({match:m, resultado: resultadoEquipo(m, eqA)});
+      secuenciaJC.push('J');
+    } else {
+      const resA = resultadoEquipo(m, eqA);
+      contra.push({match:m, resultadoA: resA});
+      secuenciaJC.push('C');
+    }
+  }
+  function rachaJC(seq){
+    let maxJ=0,maxC=0,curJ=0,curC=0;
+    for(const s of seq){
+      if(s==='J'){curJ++;curC=0;} else {curC++;curJ=0;}
+      if(curJ>maxJ) maxJ=curJ;
+      if(curC>maxC) maxC=curC;
+    }
+    let tipo=null,cant=0;
+    if(seq.length>0){
+      tipo=seq[seq.length-1]; cant=1;
+      for(let i=seq.length-2;i>=0;i--){ if(seq[i]===tipo) cant++; else break; }
+    }
+    return {maxJ,maxC,actual:{tipo,cant}};
+  }
+  function resumen(lista, key){
+    const total = lista.length;
+    const G = lista.filter(x=>x[key]==='G').length;
+    const E = lista.filter(x=>x[key]==='E').length;
+    const P = lista.filter(x=>x[key]==='P').length;
+    return {total, G, E, P, ratioGP: (G+P)>0 ? G/(G+P) : null};
+  }
+  return {
+    jugA, jugB,
+    totalEnfrentamientos: ambos.length,
+    juntos: resumen(juntos,'resultado'),
+    contra: resumen(contra,'resultadoA'),
+    rachaJC: rachaJC(secuenciaJC),
+    ratioJC: ambos.length>0 ? juntos.length/ambos.length : null,
+    historialDetalle: ambos.map((m,i)=>({
+      match:m,
+      tipo:secuenciaJC[i],
+      resultado: secuenciaJC[i]==='J' ? juntos.find(j=>j.match===m).resultado : contra.find(c=>c.match===m).resultadoA
+    }))
+  };
+}
+
+function statsGrupoIndividual(matches, jugadores){
+  return jugadores.map(j => statsIndividuales(matches, j));
+}
+
+/* ============== ESTADISTICAS POR COLOR ============== */
+
+function statsColorGeneral(matches){
+  let blancoG=0, blancoE=0, blancoP=0, negroG=0, negroE=0, negroP=0;
+  for(const m of matches){
+    if(m.golesBlanco > m.golesNegro){ blancoG++; negroP++; }
+    else if(m.golesBlanco < m.golesNegro){ blancoP++; negroG++; }
+    else { blancoE++; negroE++; }
+  }
+  return {
+    blanco: {G:blancoG, E:blancoE, P:blancoP, total:matches.length, ratioGP:(blancoG+blancoP)>0?blancoG/(blancoG+blancoP):null},
+    negro: {G:negroG, E:negroE, P:negroP, total:matches.length, ratioGP:(negroG+negroP)>0?negroG/(negroG+negroP):null}
+  };
+}
+
+function statsColorJugador(matches, jugador){
+  let blanco=0, negro=0;
+  const blancoPJ = []; const negroPJ = [];
+  for(const m of matches){
+    if(!(jugador in m.lineup)) continue;
+    if(m.lineup[jugador]===0){ blanco++; blancoPJ.push({match:m, resultado: resultadoEquipo(m,0)}); }
+    else { negro++; negroPJ.push({match:m, resultado: resultadoEquipo(m,1)}); }
+  }
+  const total = blanco+negro;
+  function resumen(lista){
+    const G = lista.filter(x=>x.resultado==='G').length;
+    const E = lista.filter(x=>x.resultado==='E').length;
+    const P = lista.filter(x=>x.resultado==='P').length;
+    return {total:lista.length, G, E, P, ratioGP:(G+P)>0?G/(G+P):null};
+  }
+  return {
+    jugador, total,
+    blanco: resumen(blancoPJ), negro: resumen(negroPJ),
+    pctBlanco: total>0 ? blanco/total : null,
+    pctNegro: total>0 ? negro/total : null
+  };
+}
+
+/* ============== MATRIZ DE PAREJAS (metricas configurables) ============== */
+
+const MATRIZ_METRICAS = [
+  {id:'partidosJuntos', label:'Partidos juntos', tipo:'entero'},
+  {id:'partidosEnfrentados', label:'Partidos enfrentados', tipo:'entero'},
+  {id:'ratioJC', label:'Ratio J/(J+C)', tipo:'pct_neutro_44'},
+  {id:'ratioGPJuntos', label:'Ratio G/(G+P) jugando juntos', tipo:'pct_semaforo'},
+  {id:'ratioGPContra', label:'Ratio G/(G+P) enfrentados (fila vs columna)', tipo:'pct_semaforo'},
+  {id:'rachaActual', label:'Racha actual (juntos/enfrentados)', tipo:'racha_jc'}
+];
+
+const NEUTRO_JC = 4/9; // en un picado 5v5, P(jugar junto a alguien) = 4/9, P(enfrentarlo) = 5/9
+
+function calcularCeldaMatriz(matches, jugA, jugB, metricaId){
+  const p = statsPareja(matches, jugA, jugB);
+  switch(metricaId){
+    case 'partidosJuntos': return {display: p.juntos.total, raw: p.juntos.total};
+    case 'partidosEnfrentados': return {display: p.contra.total, raw: p.contra.total};
+    case 'ratioJC': return {
+      display: `${fmtPct(p.ratioJC)}<div class="matrix-subtext">${p.totalEnfrentamientos} pj</div>`,
+      raw: p.ratioJC
+    };
+    case 'ratioGPJuntos': return {
+      display: `${fmtPct(p.juntos.ratioGP)}<div class="matrix-subtext">${p.juntos.total} pj</div>`,
+      raw: p.juntos.ratioGP
+    };
+    case 'ratioGPContra': return {
+      display: `${fmtPct(p.contra.ratioGP)}<div class="matrix-subtext">${p.contra.total} pj</div>`,
+      raw: p.contra.ratioGP
+    };
+    case 'rachaActual': {
+      if(!p.rachaJC.actual.tipo) return {display:'—', raw:null};
+      const txt = p.rachaJC.actual.cant + (p.rachaJC.actual.tipo==='J' ? 'J' : 'C');
+      const signed = p.rachaJC.actual.tipo==='J' ? p.rachaJC.actual.cant : -p.rachaJC.actual.cant;
+      return {display: txt, raw: signed};
+    }
+    default: return {display:'—', raw:null};
+  }
+}
+
+function colorSemaforo(ratio, neutro){
+  if(ratio===null || ratio===undefined) return 'transparent';
+  const n = neutro===undefined ? 0.5 : neutro;
+  const t = Math.max(0, Math.min(1, ratio));
+  function hexToRgb(hex){ const v=parseInt(hex.slice(1),16); return [(v>>16)&255,(v>>8)&255,v&255]; }
+  function mix(c1,c2,f){ return c1.map((c,i)=>Math.round(c+(c2[i]-c)*f)); }
+  const red = hexToRgb('#E89080');
+  const neutral = hexToRgb('#EDEAE2');
+  const green = hexToRgb('#90C878');
+  let rgb;
+  if(t < n) rgb = mix(red, neutral, n>0 ? t/n : 1);
+  else rgb = mix(neutral, green, n<1 ? (t-n)/(1-n) : 1);
+  return `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+}
+
+function colorRachaJC(signed, maxIntensidad){
+  if(signed===null || signed===undefined) return 'transparent';
+  const max = maxIntensidad || 4;
+  const t = Math.max(-1, Math.min(1, signed/max));
+  function hexToRgb(hex){ const v=parseInt(hex.slice(1),16); return [(v>>16)&255,(v>>8)&255,v&255]; }
+  function mix(c1,c2,f){ return c1.map((c,i)=>Math.round(c+(c2[i]-c)*f)); }
+  const red = hexToRgb('#E89080');
+  const neutral = hexToRgb('#EDEAE2');
+  const green = hexToRgb('#90C878');
+  let rgb;
+  if(t < 0) rgb = mix(neutral, red, -t);
+  else rgb = mix(neutral, green, t);
+  return `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+}
+
+/* ============== METRICAS DE EQUIPOS ARMADOS ============== */
+
+function calcularMetricasEquipos(matches, equipoA, equipoB){
+  // stats individuales
+  function statsEquipo(jugadores){
+    const sts = jugadores.map(j => statsIndividuales(matches, j));
+    const pctPuntos = sts.map(s=>s.pctPuntos).filter(v=>v!==null);
+    const gF = sts.map(s=>s.promGolesFavor).filter(v=>v!==null);
+    const gC = sts.map(s=>s.promGolesContra).filter(v=>v!==null);
+    const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
+    return {
+      pctPuntosPromedio: avg(pctPuntos),
+      golesAFavorPromedio: avg(gF),
+      golesEnContraPromedio: avg(gC)
+    };
+  }
+
+  // cohesión interna: ratioGP y partidos juntos entre los pares del mismo equipo
+  function cohesionEquipo(jugadores){
+    const pares = [];
+    for(let i=0;i<jugadores.length;i++){
+      for(let j=i+1;j<jugadores.length;j++){
+        pares.push(statsPareja(matches, jugadores[i], jugadores[j]));
+      }
+    }
+    const ratios = pares.map(p=>p.juntos.ratioGP).filter(v=>v!==null);
+    const partidos = pares.map(p=>p.juntos.total);
+    const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
+    return {
+      ratioGPJuntos: avg(ratios),
+      partidosJuntosPromedio: avg(partidos),
+      pares: pares.length
+    };
+  }
+
+  // historial cruzado A vs B: para cada par (jugA, jugB) tomamos ratioGP de A contra B
+  function cruzadoAvsB(equA, equB){
+    const valores = [];
+    for(const jA of equA){
+      for(const jB of equB){
+        const p = statsPareja(matches, jA, jB);
+        if(p.contra.ratioGP !== null) valores.push(p.contra.ratioGP);
+      }
+    }
+    const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
+    return {
+      ratioGPContra: avg(valores),
+      pares: equA.length * equB.length,
+      paresConDatos: valores.length
+    };
+  }
+
+  return {
+    A: { jugadores: equipoA, ...statsEquipo(equipoA), cohesion: cohesionEquipo(equipoA) },
+    B: { jugadores: equipoB, ...statsEquipo(equipoB), cohesion: cohesionEquipo(equipoB) },
+    cruzadoAvsB: cruzadoAvsB(equipoA, equipoB),
+    cruzadoBvsA: cruzadoAvsB(equipoB, equipoA)
+  };
+}
+
+function buscarPartidosConGrupoExacto(matches, jugadores){
+  const setObjetivo = new Set(jugadores);
+  return matches.filter(m => {
+    const jugadoresPartido = Object.keys(m.lineup);
+    if(jugadoresPartido.length !== setObjetivo.size) return false;
+    return jugadoresPartido.every(j => setObjetivo.has(j));
+  });
+}
+
+function promedioEquipo(matches, jugadores){
+  if(!jugadores.length) return null;
+  const stats = jugadores.map(j => statsIndividuales(matches, j));
+  const n = stats.length;
+  return {
+    stats,
+    promPctPuntos: stats.reduce((a,s)=>a+(s.pctPuntos||0),0)/n,
+    promRatioGP:   stats.reduce((a,s)=>a+(s.ratioGP||0),0)/n,
+    promGF:        stats.reduce((a,s)=>a+(s.promGolesFavor||0),0)/n,
+    promGC:        stats.reduce((a,s)=>a+(s.promGolesContra||0),0)/n
+  };
+}
+
+function quimicaInterna(matches, jugadores){
+  const pares = [];
+  for(let i=0;i<jugadores.length;i++) for(let j=i+1;j<jugadores.length;j++){
+    const p = statsPareja(matches, jugadores[i], jugadores[j]);
+    if(p.juntos.total > 0) pares.push({a:jugadores[i], b:jugadores[j], ratio:p.juntos.ratioGP, total:p.juntos.total});
+  }
+  const rv = pares.filter(x=>x.ratio!==null);
+  return {
+    pares,
+    promRatioGP: rv.length ? rv.reduce((a,x)=>a+x.ratio,0)/rv.length : null,
+    paresConHistorial: rv.length
+  };
+}
+
+function historialCruzado(matches, equipoA, equipoB){
+  const pares = [];
+  for(const a of equipoA) for(const b of equipoB){
+    const p = statsPareja(matches, a, b);
+    if(p.contra.total > 0) pares.push({a, b, ratio:p.contra.ratioGP, total:p.contra.total});
+  }
+  const rv = pares.filter(x=>x.ratio!==null);
+  return {
+    pares,
+    promRatioGP: rv.length ? rv.reduce((a,x)=>a+x.ratio,0)/rv.length : null,
+    paresConHistorial: rv.length,
+    totalPares: equipoA.length * equipoB.length
+  };
+}
+
+function renderMatrizParejas(container, jugadores, metricaId, minPartidos){
+  const elegibles = jugadores.filter(j => STATE.matches.filter(m=>j in m.lineup).length >= minPartidos);
+  const ordenados = jugadoresPorPartidos(elegibles);
+  if(ordenados.length < 2){
+    container.innerHTML = `<div class="empty-state"><i class="ti ti-grid-dots"></i>Se necesitan al menos 2 jugadores con ${minPartidos}+ partidos jugados para armar la matriz.</div>`;
+    return;
+  }
+  const metrica = MATRIZ_METRICAS.find(m=>m.id===metricaId);
+  let html = `<div class="table-scroll"><table class="matrix-table"><thead><tr><th></th>`;
+  ordenados.forEach(j => html += `<th>${dn(j)}</th>`);
+  html += `</tr></thead><tbody>`;
+  ordenados.forEach(rowJ => {
+    html += `<tr><th>${dn(rowJ)}</th>`;
+    ordenados.forEach(colJ => {
+      if(rowJ === colJ){
+        html += `<td class="matrix-diag"></td>`;
+      } else {
+        const cell = calcularCeldaMatriz(STATE.matches, rowJ, colJ, metricaId);
+        let bg = '';
+        if(metrica.tipo === 'pct_semaforo') bg = `background:${colorSemaforo(cell.raw)};`;
+        else if(metrica.tipo === 'pct_neutro_44') bg = `background:${colorSemaforo(cell.raw, NEUTRO_JC)};`;
+        else if(metrica.tipo === 'racha_jc') bg = `background:${colorRachaJC(cell.raw)};`;
+        html += `<td class="matrix-cell" style="${bg}" title="${dn(rowJ)} / ${dn(colJ)}">${cell.display}</td>`;
+      }
+    });
+    html += `</tr>`;
+  });
+  html += `</tbody></table></div>`;
+  container.innerHTML = html;
+}
+
+/* ============== ESTADO Y PERSISTENCIA ============== */
+
+const ADMIN_PASS = 'futboldm26';
+const STATE = {
+  players: [],
+  matches: [],
+  playerInfo: {}, // key -> {nombre, apellido, traidoPor}  (key = el string que aparece en lineup, nunca cambia)
+  isAdmin: false,
+  tab: 'individual',
+  loaded: false
+};
+
+/* Deriva el nombre para mostrar a partir del key y de playerInfo */
+function displayName(key){
+  const info = STATE.playerInfo[key];
+  if(!info) return key; // sin metadatos -> mostrar key tal cual (retrocompatible)
+  const nombre = (info.nombre || key).trim();
+  const apellido = (info.apellido || '').trim();
+  const traidoPor = (info.traidoPor || '').trim();
+  // primer nombre de quien lo trajo (ej. "Ivo Monar" -> "Ivo")
+  const primerNombreTraidor = traidoPor ? traidoPor.split(/\s+/)[0] : '';
+  let display = nombre;
+  if(apellido) display += ' ' + apellido;
+  if(primerNombreTraidor) display += ' (' + primerNombreTraidor + ')';
+  return display;
+}
+
+const LS_KEY = 'futboldm_data_v1';
+// Versión del seed: si el localStorage tiene datos de una versión anterior del seed, se reemplaza
+const SEED_VERSION = SEED_DATA.matches.length + '_' + Object.keys(SEED_DATA.playerInfo || {}).length;
+
+function localStorageAvailable(){
+  try{ localStorage.setItem('_test','1'); localStorage.removeItem('_test'); return true; }catch(e){ return false; }
+}
+
+function storageAvailable(){
+  return typeof window.storage !== 'undefined' && window.storage && typeof window.storage.get === 'function';
+}
+
+function lsLoad(){
+  if(!localStorageAvailable()) return null;
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return null;
+    const d = JSON.parse(raw);
+    if(!d || !Array.isArray(d.players) || !Array.isArray(d.matches)) return null;
+    return d;
+  }catch(e){ return null; }
+}
+
+function lsSave(data){
+  if(!localStorageAvailable()) return;
+  try{
+    data._seedVersion = SEED_VERSION;
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+  }catch(e){}
+}
+
+function seedIsNewer(stored){
+  // El seed es más nuevo si tiene más partidos, o mismos partidos pero más playerInfo
+  const storedVer = stored._seedVersion || '';
+  return storedVer !== SEED_VERSION && (
+    SEED_DATA.matches.length > (stored.matches || []).length ||
+    Object.keys(SEED_DATA.playerInfo || {}).length > Object.keys(stored.playerInfo || {}).length
+  );
+}
+
+async function loadData(){
+  // Prioridad 1: window.storage (Claude.ai, compartido entre usuarios)
+  if(storageAvailable()){
+    try{
+      const res = await window.storage.get('futboldm:data', true);
+      if(res && res.value){
+        const parsed = JSON.parse(res.value);
+        if(Array.isArray(parsed.players) && Array.isArray(parsed.matches)){
+          // Si el seed tiene playerInfo más completo, lo fusionamos sin pisar lo que el usuario editó
+          const mergedPlayerInfo = Object.assign({}, SEED_DATA.playerInfo || {}, parsed.playerInfo || {});
+          STATE.players = parsed.players;
+          STATE.matches = parsed.matches;
+          STATE.playerInfo = mergedPlayerInfo;
+          lsSave({players: STATE.players, matches: STATE.matches, playerInfo: STATE.playerInfo});
+          return;
+        }
+      }
+    }catch(e){}
+  }
+  // Prioridad 2: localStorage
+  const ls = lsLoad();
+  if(ls && !seedIsNewer(ls)){
+    // Fusionar playerInfo del seed con lo guardado (seed como base, lo guardado tiene prioridad)
+    const mergedPlayerInfo = Object.assign({}, SEED_DATA.playerInfo || {}, ls.playerInfo || {});
+    STATE.players = ls.players;
+    STATE.matches = ls.matches;
+    STATE.playerInfo = mergedPlayerInfo;
+    if(storageAvailable()) await saveData();
+    return;
+  }
+  // Prioridad 3: seed (primera vez, o seed más nuevo)
+  STATE.players = SEED_DATA.players.slice();
+  STATE.matches = SEED_DATA.matches.slice();
+  STATE.playerInfo = Object.assign({}, SEED_DATA.playerInfo || {});
+  await saveData();
+}
+
+async function saveData(){
+  const payload = {
+    players: STATE.players,
+    matches: STATE.matches,
+    playerInfo: STATE.playerInfo
+  };
+  // Siempre guardar en localStorage (funciona en cualquier entorno)
+  lsSave(payload);
+  // También en window.storage si está disponible
+  if(storageAvailable()){
+    try{
+      await window.storage.set('futboldm:data', JSON.stringify(payload), true);
+      return true;
+    }catch(e){
+      showToast('No se pudo guardar en storage. Los datos quedan en localStorage del navegador.');
+      return true; // localStorage sí se guardó
+    }
+  }
+  return true; // localStorage es suficiente
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+function fmtPct(x){ return x===null||x===undefined ? '—' : (x*100).toFixed(0)+'%'; }
+
+function jugadoresPorPartidos(jugadores){
+  return jugadores.slice().sort((a,b) => {
+    const ja = STATE.matches.filter(m => a in m.lineup).length;
+    const jb = STATE.matches.filter(m => b in m.lineup).length;
+    if(jb !== ja) return jb - ja;
+    return a.localeCompare(b);
+  });
+}
+function fmtPct1(x){ return x===null||x===undefined ? '—' : (x*100).toFixed(1)+'%'; }
+function fmtNum(x,d=2){ return x===null||x===undefined ? '—' : Number(x).toFixed(d); }
+function fmtDate(s){
+  const d = new Date(s+'T00:00:00');
+  return d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+// shorthand: escape del nombre display de un jugador (key)
+function dn(key){ return escapeHtml(displayName(key)); }
+
+/* ============== SHELL DE LA APP ============== */
+
+const TABS = [
+  {id:'individual', label:'Individual', icon:'ti-user'},
+  {id:'parejas', label:'Parejas', icon:'ti-users'},
+  {id:'equipos', label:'Armar equipos', icon:'ti-layout-grid'},
+  {id:'color', label:'Color', icon:'ti-circle-half-2'},
+  {id:'admin', label:'Admin', icon:'ti-lock'}
+];
+
+function renderShell(){
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-mark"></div>
+        <div class="brand-text">
+          <h1>Futbol del DM</h1>
+        </div>
+      </div>
+      <div class="topbar-meta" id="topbar-meta"></div>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div id="view-individual" class="view"></div>
+    <div id="view-parejas" class="view"></div>
+    <div id="view-equipos" class="view"></div>
+    <div id="view-color" class="view"></div>
+    <div id="view-admin" class="view"></div>
+  `;
+  updateHeaderMeta();
+  renderTabs();
+  renderActiveView();
+}
+
+function updateHeaderMeta(){
+  const el = document.getElementById('topbar-meta');
+  if(!el) return;
+  const totalPartidos = STATE.matches.length;
+  const ultimaFecha = totalPartidos>0 ? STATE.matches.reduce((max,m)=> m.date>max?m.date:max, STATE.matches[0].date) : null;
+  el.innerHTML = `${totalPartidos} partidos jugados<br>${ultimaFecha ? 'ultimo: '+fmtDate(ultimaFecha) : ''}`;
+}
+
+function renderTabs(){
+  const tabsEl = document.getElementById('tabs');
+  tabsEl.innerHTML = TABS.map(t => `
+    <button class="tab-btn ${STATE.tab===t.id?'active':''}" data-tab="${t.id}">
+      <i class="ti ${t.icon}" style="font-size:14px;vertical-align:-2px;margin-right:5px;" aria-hidden="true"></i>${t.label}
+    </button>
+  `).join('');
+  tabsEl.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      STATE.tab = btn.dataset.tab;
+      renderTabs();
+      renderActiveView();
+    });
+  });
+}
+
+function renderActiveView(){
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const el = document.getElementById('view-'+STATE.tab);
+  el.classList.add('active');
+  if(STATE.tab==='individual') renderIndividualView(el);
+  else if(STATE.tab==='parejas') renderParejasView(el);
+  else if(STATE.tab==='equipos') renderEquiposView(el);
+  else if(STATE.tab==='color') renderColorView(el);
+  else if(STATE.tab==='admin') renderAdminView(el);
+}
+
+async function boot(){
+  await loadData();
+  STATE.loaded = true;
+  renderShell();
+}
+
+/* ============== VISTA INDIVIDUAL ============== */
+
+let _individualSort = {key:'J', dir:-1};
+let _individualSelected = null;
+let _filtroDesde = '';
+let _filtroHasta = '';
+
+function matchesFiltered(){
+  let ms = STATE.matches;
+  if(_filtroDesde) ms = ms.filter(m => m.date >= _filtroDesde);
+  if(_filtroHasta) ms = ms.filter(m => m.date <= _filtroHasta);
+  return ms;
+}
+
+function filtroActivo(){
+  return !!(_filtroDesde || _filtroHasta);
+}
+
+function renderIndividualView(el){
+  const matches = matchesFiltered();
+  const allStats = statsGrupoIndividual(matches, STATE.players).filter(s=>s.J>0);
+
+  // fechas min/max del dataset para los placeholders
+  const allDates = STATE.matches.map(m=>m.date).sort();
+  const dateMin = allDates[0] || '';
+  const dateMax = allDates[allDates.length-1] || '';
+
+  const activo = filtroActivo();
+  const nPartidos = matches.length;
+
+  el.innerHTML = `
+    <div class="card" style="margin-bottom:20px;padding:16px 20px;">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <span style="font-family:var(--font-display);font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);white-space:nowrap;">Filtrar por fecha</span>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <label style="font-size:12px;color:var(--muted);">Desde</label>
+          <input type="date" id="filtro-desde" value="${_filtroDesde}" min="${dateMin}" max="${dateMax}" style="font-size:13px;padding:6px 10px;">
+          <label style="font-size:12px;color:var(--muted);">Hasta</label>
+          <input type="date" id="filtro-hasta" value="${_filtroHasta}" min="${dateMin}" max="${dateMax}" style="font-size:13px;padding:6px 10px;">
+          ${activo ? `<button class="btn secondary" id="filtro-clear" style="padding:6px 12px;font-size:12px;">Limpiar</button>` : ''}
+        </div>
+        ${activo ? `<span style="font-size:12px;color:var(--grass);font-weight:500;">${nPartidos} partidos en el intervalo</span>` : `<span style="font-size:12px;color:var(--muted);">${nPartidos} partidos en total</span>`}
+      </div>
+    </div>
+    <div class="section-title">Ranking general${activo ? ' <span style="color:var(--grass);font-size:11px;font-weight:400;text-transform:none;">(filtrado)</span>' : ''}</div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div class="table-scroll">
+        <table class="stat-table" id="ind-table"></table>
+      </div>
+    </div>
+    <div id="ind-detail" style="margin-top:24px;"></div>
+  `;
+
+  document.getElementById('filtro-desde').addEventListener('change', e => {
+    _filtroDesde = e.target.value;
+    renderIndividualView(el);
+  });
+  document.getElementById('filtro-hasta').addEventListener('change', e => {
+    _filtroHasta = e.target.value;
+    renderIndividualView(el);
+  });
+  if(activo){
+    document.getElementById('filtro-clear').addEventListener('click', () => {
+      _filtroDesde = ''; _filtroHasta = '';
+      renderIndividualView(el);
+    });
+  }
+
+  renderIndividualTable(allStats, activo);
+  if(_individualSelected && STATE.players.includes(_individualSelected)){
+    renderPlayerDetail(_individualSelected, matches, activo);
+  }
+}
+
+const IND_COLS_BASE = [
+  {key:'jugador', label:'Jugador', num:false},
+  {key:'J', label:'PJ', num:true},
+  {key:'G', label:'G', num:true},
+  {key:'E', label:'E', num:true},
+  {key:'P', label:'P', num:true},
+  {key:'ratioGP', label:'G/(G+P)', num:true},
+  {key:'pctPuntos', label:'% Puntos', num:true},
+];
+const IND_COLS_SIN_FILTRO = [
+  ...IND_COLS_BASE,
+  {key:'rachaActual', label:'Racha actual', num:false},
+  {key:'ultimaFecha', label:'Ultimo partido', num:true}
+];
+
+function renderIndividualTable(stats, conFiltro){
+  const cols = conFiltro ? IND_COLS_BASE : IND_COLS_SIN_FILTRO;
+
+  // si el sort activo era por una col que ya no existe, resetear
+  if(conFiltro && (_individualSort.key==='rachaActual' || _individualSort.key==='ultimaFecha')){
+    _individualSort = {key:'J', dir:-1};
+  }
+
+  const sorted = stats.slice().sort((a,b) => {
+    let av, bv;
+    if(_individualSort.key==='rachaActual'){
+      av = a.rachas.actual.cant; bv = b.rachas.actual.cant;
+    } else if(_individualSort.key==='jugador'){
+      av = a.jugador.toLowerCase(); bv = b.jugador.toLowerCase();
+      return _individualSort.dir * (av<bv?-1:av>bv?1:0);
+    } else if(_individualSort.key==='ultimaFecha'){
+      av = a.ultimaFecha || ''; bv = b.ultimaFecha || '';
+      return _individualSort.dir * (av<bv?-1:av>bv?1:0);
+    } else {
+      av = a[_individualSort.key]; bv = b[_individualSort.key];
+    }
+    if(av===null) av=-Infinity; if(bv===null) bv=-Infinity;
+    return _individualSort.dir * (av-bv);
+  });
+
+  const table = document.getElementById('ind-table');
+  table.innerHTML = `
+    <thead><tr>
+      ${cols.map(c => `<th class="${c.num?'num':''} sortable" data-key="${c.key}">${c.label}${_individualSort.key===c.key?'<span class="sort-arrow">'+(_individualSort.dir===1?'▲':'▼')+'</span>':''}</th>`).join('')}
+    </tr></thead>
+    <tbody>
+      ${sorted.map(s => `
+        <tr data-jugador="${escapeHtml(s.jugador)}">
+          <td class="rank-name">${dn(s.jugador)}</td>
+          <td class="num">${s.J}</td>
+          <td class="num g">${s.G}</td>
+          <td class="num e">${s.E}</td>
+          <td class="num p">${s.P}</td>
+          <td class="num">${fmtPct(s.ratioGP)}</td>
+          <td class="num">${fmtPct(s.pctPuntos)}</td>
+          ${!conFiltro ? `
+          <td class="num">${rachaLabel(s.rachas.actual)}</td>
+          <td class="num" style="font-family:var(--font-mono);font-size:12.5px;">${s.ultimaFecha ? fmtDate(s.ultimaFecha) : '—'}</td>
+          ` : ''}
+        </tr>
+      `).join('')}
+    </tbody>
+  `;
+  table.querySelectorAll('th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.key;
+      if(_individualSort.key===key) _individualSort.dir *= -1;
+      else _individualSort = {key, dir: key==='jugador'?1:-1};
+      renderIndividualTable(stats, conFiltro);
+    });
+  });
+  table.querySelectorAll('tbody tr').forEach(tr => {
+    tr.addEventListener('click', () => {
+      _individualSelected = tr.dataset.jugador;
+      renderPlayerDetail(_individualSelected, matchesFiltered(), filtroActivo());
+      document.getElementById('ind-detail').scrollIntoView({behavior:'smooth', block:'nearest'});
+    });
+  });
+}
+
+function rachaLabel(actual){
+  if(!actual.tipo) return '—';
+  const cls = actual.tipo==='G'?'g':actual.tipo==='E'?'e':'p';
+  const word = actual.tipo==='G'?'ganados':actual.tipo==='E'?'empatados':'perdidos';
+  return `<span class="${cls}" style="font-weight:600;">${actual.cant} ${word}</span>`;
+}
+
+function formStrip(historial){
+  const last = historial.slice(-10);
+  return `<div class="form-strip">${last.map(r=>`<span class="streak-chip chip-${r}">${r}</span>`).join('')}</div>`;
+}
+
+function renderPlayerDetail(jugador, matches, conFiltro){
+  if(!matches) matches = STATE.matches;
+  if(conFiltro === undefined) conFiltro = filtroActivo();
+  const s = statsIndividuales(matches, jugador);
+  const detail = document.getElementById('ind-detail');
+  if(s.J===0){
+    const msg = conFiltro
+      ? `${dn(jugador)} no jugó ningún partido en el intervalo seleccionado.`
+      : `${dn(jugador)} todavia no jugó ningún partido.`;
+    detail.innerHTML = `<div class="empty-state"><i class="ti ti-shirt-sport"></i>${msg}</div>`;
+    return;
+  }
+
+  const subtitulo = conFiltro
+    ? `Ficha de jugador — ${dn(jugador)} <span style="font-size:12px;font-weight:400;color:var(--grass);">(filtrado: ${s.J} partidos)</span>`
+    : `Ficha de jugador — ${dn(jugador)}`;
+
+  detail.innerHTML = `
+    <div class="section-title">${subtitulo}</div>
+    <div class="grid-4" style="margin-bottom:16px;">
+      <div class="metric"><p class="label">Partidos jugados</p><p class="value">${s.J}</p></div>
+      <div class="metric"><p class="label">Ganados / Empatados / Perdidos</p><p class="value"><span class="g">${s.G}</span> / <span class="e">${s.E}</span> / <span class="p">${s.P}</span></p></div>
+      <div class="metric"><p class="label">Ratio G/(G+P)</p><p class="value">${fmtPct(s.ratioGP)}</p></div>
+      <div class="metric"><p class="label">% Puntos (3G+E)/3J</p><p class="value">${fmtPct(s.pctPuntos)}</p></div>
+    </div>
+    ${!conFiltro ? `
+    <div class="grid-4" style="margin-bottom:16px;">
+      <div class="metric"><p class="label">Maxima racha de ganados</p><p class="value g">${s.rachas.maxG}</p></div>
+      <div class="metric"><p class="label">Maxima racha de perdidos</p><p class="value p">${s.rachas.maxP}</p></div>
+      <div class="metric"><p class="label">Maxima racha de empatados</p><p class="value e">${s.rachas.maxE}</p></div>
+      <div class="metric"><p class="label">Ultimo partido jugado</p><p class="value" style="font-size:18px;">${fmtDate(s.ultimaFecha)}</p></div>
+    </div>
+    ` : ''}
+    <div class="${conFiltro ? 'grid-2' : 'grid-3'}" style="margin-bottom:16px;">
+      <div class="card">
+        <p class="label" style="font-size:11px;text-transform:uppercase;color:var(--muted);margin:0 0 10px;">Goles por partido (de su equipo)</p>
+        <div style="display:flex;gap:18px;">
+          <div><span style="font-family:var(--font-display);font-size:20px;font-weight:600;color:var(--grass);">${fmtNum(s.promGolesFavor,2)}</span><div style="font-size:11px;color:var(--muted);">A favor</div></div>
+          <div><span style="font-family:var(--font-display);font-size:20px;font-weight:600;color:var(--terra);">${fmtNum(s.promGolesContra,2)}</span><div style="font-size:11px;color:var(--muted);">En contra</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <p class="label" style="font-size:11px;text-transform:uppercase;color:var(--muted);margin:0 0 10px;">% de partidos jugados</p>
+        <div style="display:flex;gap:18px;">
+          <div><span class="g" style="font-family:var(--font-display);font-size:20px;font-weight:600;">${fmtPct(s.pctG)}</span><div style="font-size:11px;color:var(--muted);">Ganados</div></div>
+          <div><span class="e" style="font-family:var(--font-display);font-size:20px;font-weight:600;">${fmtPct(s.pctE)}</span><div style="font-size:11px;color:var(--muted);">Empatados</div></div>
+          <div><span class="p" style="font-family:var(--font-display);font-size:20px;font-weight:600;">${fmtPct(s.pctP)}</span><div style="font-size:11px;color:var(--muted);">Perdidos</div></div>
+        </div>
+      </div>
+      ${!conFiltro ? `
+      <div class="card">
+        <p class="label" style="font-size:11px;text-transform:uppercase;color:var(--muted);margin:0 0 10px;">Racha actual</p>
+        <div style="font-family:var(--font-display);font-size:20px;font-weight:600;">${rachaLabel(s.rachas.actual)}</div>
+      </div>
+      ` : ''}
+    </div>
+    <div class="card">
+      <p class="label" style="font-size:11px;text-transform:uppercase;color:var(--muted);margin:0 0 10px;">
+        ${conFiltro ? 'Partidos en el intervalo' : 'Ultimos partidos jugados'}
+      </p>
+      ${formStrip(s.historial)}
+    </div>
+  `;
+}
+
+
+/* ============== VISTA PAREJAS ============== */
+
+let _parejaA = null;
+let _parejaB = null;
+
+function playerOptionsHtml(selectedVal, excludeVal){
+  const opts = jugadoresPorPartidos(STATE.players).filter(p => p !== excludeVal);
+  return `<option value="">Elegir jugador…</option>` + opts.map(p =>
+    `<option value="${escapeHtml(p)}" ${p===selectedVal?'selected':''}>${dn(p)}</option>`
+  ).join('');
+}
+
+let _parejasSubtab = 'comparar';
+let _matrizMetrica = 'partidosJuntos';
+const MATRIZ_MIN_PARTIDOS = 10;
+
+function renderParejasView(el){
+  el.innerHTML = `
+    <div class="tabs" style="margin-bottom:20px;">
+      <button class="tab-btn ${_parejasSubtab==='comparar'?'active':''}" data-parsub="comparar">Comparar dos jugadores</button>
+      <button class="tab-btn ${_parejasSubtab==='matriz'?'active':''}" data-parsub="matriz">Matriz de metricas</button>
+    </div>
+    <div id="parejas-subcontent"></div>
+  `;
+  el.querySelectorAll('[data-parsub]').forEach(btn => {
+    btn.addEventListener('click', () => { _parejasSubtab = btn.dataset.parsub; renderParejasView(el); });
+  });
+  const sub = document.getElementById('parejas-subcontent');
+  if(_parejasSubtab === 'comparar') renderParejasComparar(sub);
+  else renderParejasMatrizView(sub);
+}
+
+function renderParejasComparar(sub){
+  sub.innerHTML = `
+    <div class="section-title">Comparar dos jugadores</div>
+    <div class="card" style="margin-bottom:24px;">
+      <div class="grid-2">
+        <div>
+          <label class="field-label">Jugador A</label>
+          <select id="pareja-a" style="width:100%;"></select>
+        </div>
+        <div>
+          <label class="field-label">Jugador B</label>
+          <select id="pareja-b" style="width:100%;"></select>
+        </div>
+      </div>
+    </div>
+    <div id="pareja-result"></div>
+  `;
+  const selA = document.getElementById('pareja-a');
+  const selB = document.getElementById('pareja-b');
+  selA.innerHTML = playerOptionsHtml(_parejaA, null);
+  selB.innerHTML = playerOptionsHtml(_parejaB, null);
+  selA.addEventListener('change', () => { _parejaA = selA.value || null; renderParejaResult(); });
+  selB.addEventListener('change', () => { _parejaB = selB.value || null; renderParejaResult(); });
+  renderParejaResult();
+}
+
+function renderParejasMatrizView(sub){
+  sub.innerHTML = `
+    <div class="section-title">Matriz de metricas entre jugadores (10+ partidos jugados)</div>
+    <div class="card" style="margin-bottom:20px;">
+      <label class="field-label">Metrica</label>
+      <select id="matriz-metrica" style="width:100%;max-width:420px;">
+        ${MATRIZ_METRICAS.map(m => `<option value="${m.id}" ${m.id===_matrizMetrica?'selected':''}>${escapeHtml(m.label)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="card" style="overflow:auto;">
+      <div id="matriz-container"></div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px;">
+      Filas y columnas: jugadores con 10 o mas partidos jugados, ordenados de mas a menos activo. La diagonal queda vacia.
+      En los ratios G/(G+P) la celda va de rojo (peor) a verde (mejor) con 50% como punto neutro.
+      En el ratio J/(J+C) el neutro es 44% (4/9), la proporcion esperada de companeros en un picado 5 vs 5.
+      En la racha actual, el verde se intensifica con rachas largas de jugar juntos y el rojo con rachas largas de enfrentarse.
+    </p>
+  `;
+  document.getElementById('matriz-metrica').addEventListener('change', (e) => {
+    _matrizMetrica = e.target.value;
+    renderMatrizParejas(document.getElementById('matriz-container'), STATE.players, _matrizMetrica, MATRIZ_MIN_PARTIDOS);
+  });
+  renderMatrizParejas(document.getElementById('matriz-container'), STATE.players, _matrizMetrica, MATRIZ_MIN_PARTIDOS);
+}
+
+function renderParejaResult(){
+  const wrap = document.getElementById('pareja-result');
+  if(!wrap) return;
+  if(!_parejaA || !_parejaB){
+    wrap.innerHTML = `<div class="empty-state"><i class="ti ti-users"></i>Elegi dos jugadores para ver sus estadisticas en comun.</div>`;
+    return;
+  }
+  if(_parejaA === _parejaB){
+    wrap.innerHTML = `<div class="empty-state"><i class="ti ti-alert-circle"></i>Elegi dos jugadores distintos.</div>`;
+    return;
+  }
+  const p = statsPareja(STATE.matches, _parejaA, _parejaB);
+  if(p.totalEnfrentamientos===0){
+    wrap.innerHTML = `<div class="empty-state"><i class="ti ti-ban"></i>${dn(_parejaA)} y ${dn(_parejaB)} nunca coincidieron en un partido.</div>`;
+    return;
+  }
+  const seqHistoria = p.historialDetalle.slice(-12);
+  wrap.innerHTML = `
+    <div class="grid-4" style="margin-bottom:16px;">
+      <div class="metric"><p class="label">Partidos en comun</p><p class="value">${p.totalEnfrentamientos}</p></div>
+      <div class="metric"><p class="label">Jugaron juntos</p><p class="value">${p.juntos.total}</p></div>
+      <div class="metric"><p class="label">Se enfrentaron</p><p class="value">${p.contra.total}</p></div>
+      <div class="metric"><p class="label">Ratio J/(J+C)</p><p class="value">${fmtPct(p.ratioJC)}</p></div>
+    </div>
+    <div class="grid-2" style="margin-bottom:16px;">
+      <div class="card">
+        <p class="label" style="font-size:11px;text-transform:uppercase;color:var(--muted);margin:0 0 10px;">Jugando juntos (mismo equipo) &middot; ratio G/(G+P): <strong style="color:var(--ink);">${fmtPct(p.juntos.ratioGP)}</strong></p>
+        <div style="display:flex;gap:18px;">
+          <div><span class="g" style="font-family:var(--font-display);font-size:20px;font-weight:600;">${p.juntos.G}</span><div style="font-size:11px;color:var(--muted);">Ganados</div></div>
+          <div><span class="e" style="font-family:var(--font-display);font-size:20px;font-weight:600;">${p.juntos.E}</span><div style="font-size:11px;color:var(--muted);">Empatados</div></div>
+          <div><span class="p" style="font-family:var(--font-display);font-size:20px;font-weight:600;">${p.juntos.P}</span><div style="font-size:11px;color:var(--muted);">Perdidos</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <p class="label" style="font-size:11px;text-transform:uppercase;color:var(--muted);margin:0 0 10px;">Enfrentados &middot; resultado de ${dn(_parejaA)} &middot; ratio G/(G+P): <strong style="color:var(--ink);">${fmtPct(p.contra.ratioGP)}</strong></p>
+        <div style="display:flex;gap:18px;">
+          <div><span class="g" style="font-family:var(--font-display);font-size:20px;font-weight:600;">${p.contra.G}</span><div style="font-size:11px;color:var(--muted);">Ganados</div></div>
+          <div><span class="e" style="font-family:var(--font-display);font-size:20px;font-weight:600;">${p.contra.E}</span><div style="font-size:11px;color:var(--muted);">Empatados</div></div>
+          <div><span class="p" style="font-family:var(--font-display);font-size:20px;font-weight:600;">${p.contra.P}</span><div style="font-size:11px;color:var(--muted);">Perdidos</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <p class="label" style="font-size:11px;text-transform:uppercase;color:var(--muted);margin:0 0 10px;">
+        Racha actual: <span style="font-weight:600;color:var(--ink);">${p.rachaJC.actual.tipo ? p.rachaJC.actual.cant+' partidos '+(p.rachaJC.actual.tipo==='J'?'juntos':'enfrentados') : '—'}</span>
+        &middot; maximas rachas: ${p.rachaJC.maxJ} juntos / ${p.rachaJC.maxC} enfrentados
+        &middot; ultimos encuentros (J = juntos, C = enfrentados &middot; resultado de ${dn(_parejaA)})
+      </p>
+      <div class="form-strip">
+        ${seqHistoria.map(h => `
+          <div class="dual-chip" title="${(h.tipo==='J'?'Jugaron juntos':'Se enfrentaron')+' · '+h.resultado}">
+            <div class="dual-chip-top ${h.tipo==='C'?'tipo-C':''}">${h.tipo}</div>
+            <div class="dual-chip-bottom chip-${h.resultado}">${h.resultado}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+/* ============== VISTA ARMAR EQUIPOS ============== */
+
+let _equiposSeleccion = [];
+let _equiposAsignacion = {}; // jugador -> 'A' | 'B' | undefined
+let _equiposSubtab = 'seleccion'; // 'seleccion' | 'asignar'
+
+function renderEquiposView(el){
+  const ordenados = jugadoresPorPartidos(STATE.players);
+  el.innerHTML = `
+    <div class="tabs" style="margin-bottom:20px;">
+      <button class="tab-btn ${_equiposSubtab==='seleccion'?'active':''}" data-eqsub="seleccion">Estadisticas del grupo</button>
+      <button class="tab-btn ${_equiposSubtab==='asignar'?'active':''}" data-eqsub="asignar">Asignar equipos</button>
+    </div>
+    <div id="eq-subcontent"></div>
+  `;
+  el.querySelectorAll('[data-eqsub]').forEach(btn => {
+    btn.addEventListener('click', () => { _equiposSubtab = btn.dataset.eqsub; renderEquiposView(el); });
+  });
+  const sub = document.getElementById('eq-subcontent');
+  if(_equiposSubtab === 'seleccion') renderEquiposSeleccionView(sub, ordenados);
+  else renderEquiposAsignarView(sub, ordenados);
+}
+
+function renderEquiposSeleccionView(sub, ordenados){
+  sub.innerHTML = `
+    <div class="section-title">Elegi quienes juegan hoy (10 a 12 jugadores)</div>
+    <input type="text" class="search-input" id="eq-search" placeholder="Buscar jugador…">
+    <div class="player-pill-list" id="eq-pills"></div>
+    <div id="eq-stats" style="margin-top:28px;"></div>
+  `;
+  renderEquipoPills(ordenados, '');
+  document.getElementById('eq-search').addEventListener('input', (e) => {
+    renderEquipoPills(ordenados, e.target.value);
+  });
+  renderEquipoStats();
+}
+
+function renderEquipoPills(allPlayers, filterText){
+  const ft = filterText.trim().toLowerCase();
+  const filtered = ft ? allPlayers.filter(p => p.toLowerCase().includes(ft)) : allPlayers;
+  const pillsEl = document.getElementById('eq-pills');
+  pillsEl.innerHTML = filtered.map(p => `
+    <div class="player-pill ${_equiposSeleccion.includes(p)?'selected':''}" data-player="${escapeHtml(p)}">
+      ${dn(p)}${_equiposSeleccion.includes(p) ? '<span class="pill-x"><i class="ti ti-check" style="font-size:11px;" aria-hidden="true"></i></span>' : ''}
+    </div>
+  `).join('');
+  pillsEl.querySelectorAll('.player-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const p = pill.dataset.player;
+      const idx = _equiposSeleccion.indexOf(p);
+      if(idx>=0) _equiposSeleccion.splice(idx,1);
+      else _equiposSeleccion.push(p);
+      renderEquipoPills(allPlayers, document.getElementById('eq-search').value);
+      renderEquipoStats();
+    });
+  });
+}
+
+let _equiposMatrizMetrica = 'partidosJuntos';
+
+function renderEquipoStats(){
+  const wrap = document.getElementById('eq-stats');
+  if(_equiposSeleccion.length < 2){
+    wrap.innerHTML = `<div class="empty-state"><i class="ti ti-shirt-sport"></i>Elegi al menos dos jugadores para ver sus estadisticas individuales y de pareja.</div>`;
+    return;
+  }
+  const stats = statsGrupoIndividual(STATE.matches, _equiposSeleccion);
+  const rows = stats.slice().sort((a,b)=>b.pctPuntos-a.pctPuntos || b.J-a.J);
+  const partidosExactos = buscarPartidosConGrupoExacto(STATE.matches, _equiposSeleccion).sort((a,b)=>b.date.localeCompare(a.date));
+
+  wrap.innerHTML = `
+    <div class="section-title">Estadisticas individuales del grupo</div>
+    <div class="card" style="padding:0;overflow:hidden;margin-bottom:24px;">
+      <div class="table-scroll">
+        <table class="stat-table">
+          <thead><tr>
+            <th>Jugador</th><th class="num">PJ</th><th class="num">G</th><th class="num">E</th><th class="num">P</th>
+            <th class="num">% Puntos</th><th class="num">Racha actual</th>
+          </tr></thead>
+          <tbody>
+            ${rows.map(s => `<tr>
+              <td class="rank-name">${dn(s.jugador)}</td>
+              <td class="num">${s.J}</td>
+              <td class="num g">${s.G}</td>
+              <td class="num e">${s.E}</td>
+              <td class="num p">${s.P}</td>
+              <td class="num">${fmtPct(s.pctPuntos)}</td>
+              <td class="num">${rachaLabel(s.rachas.actual)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-title">Matriz de metricas (entre los seleccionados)</div>
+    <div class="card" style="margin-bottom:20px;">
+      <label class="field-label">Metrica</label>
+      <select id="eq-matriz-metrica" style="width:100%;max-width:420px;">
+        ${MATRIZ_METRICAS.map(m => `<option value="${m.id}" ${m.id===_equiposMatrizMetrica?'selected':''}>${escapeHtml(m.label)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="card" style="overflow:auto;margin-bottom:24px;">
+      <div id="eq-matriz-container"></div>
+    </div>
+
+    <div class="section-title">Partidos anteriores con exactamente este grupo</div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      ${partidosExactos.length===0 ? `
+        <div class="empty-state" style="padding:30px 20px;"><i class="ti ti-history"></i>Nunca jugaron un partido con exactamente estos ${_equiposSeleccion.length} jugadores.</div>
+      ` : `
+        <div class="table-scroll">
+          <table class="stat-table">
+            <thead><tr><th>Fecha</th><th>Equipo Blanco</th><th>Equipo Negro</th><th class="num">Resultado</th></tr></thead>
+            <tbody>
+              ${partidosExactos.map(m => {
+                const blancos = Object.keys(m.lineup).filter(j=>m.lineup[j]===0);
+                const negros = Object.keys(m.lineup).filter(j=>m.lineup[j]===1);
+                return `<tr>
+                  <td>${fmtDate(m.date)}</td>
+                  <td>${blancos.map(j=>dn(j)).join(', ')}</td>
+                  <td>${negros.map(j=>dn(j)).join(', ')}</td>
+                  <td class="num" style="font-family:var(--font-mono);">${m.golesBlanco} - ${m.golesNegro}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `}
+    </div>
+  `;
+  document.getElementById('eq-matriz-metrica').addEventListener('change', (e) => {
+    _equiposMatrizMetrica = e.target.value;
+    renderMatrizParejas(document.getElementById('eq-matriz-container'), _equiposSeleccion, _equiposMatrizMetrica, 0);
+  });
+  renderMatrizParejas(document.getElementById('eq-matriz-container'), _equiposSeleccion, _equiposMatrizMetrica, 0);
+}
+
+/* ============== VISTA ARMAR EQUIPOS – ASIGNACION ============== */
+
+function renderEquiposAsignarView(sub, ordenados){
+  const seleccion = _equiposSeleccion.length > 0 ? _equiposSeleccion : [];
+  if(seleccion.length < 2){
+    sub.innerHTML = `<div class="empty-state"><i class="ti ti-shirt-sport"></i>Primero selecc. los jugadores en la pestana "Estadisticas del grupo".</div>`;
+    return;
+  }
+  sub.innerHTML = `
+    <div class="section-title">Asigna cada jugador a un equipo (click para cambiar: A / B / sin asignar)</div>
+    <div class="grid-2" style="margin-bottom:16px;gap:8px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="team-badge-A">A</span>
+        <span style="font-size:13px;color:var(--muted);">Equipo A</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="team-badge-B">B</span>
+        <span style="font-size:13px;color:var(--muted);">Equipo B</span>
+      </div>
+    </div>
+    <div class="player-pill-list" id="eq-asig-pills" style="margin-bottom:24px;"></div>
+    <div id="eq-asig-metricas"></div>
+  `;
+  renderAsigPills();
+  renderAsigMetricas();
+}
+
+function renderAsigPills(){
+  const pillsEl = document.getElementById('eq-asig-pills');
+  if(!pillsEl) return;
+  pillsEl.innerHTML = _equiposSeleccion.map(p => {
+    const asig = _equiposAsignacion[p];
+    let cls = 'pill-team-none', label = dn(p);
+    if(asig==='A'){ cls='pill-asig-A'; label = dn(p)+' · A'; }
+    else if(asig==='B'){ cls='pill-asig-B'; label = dn(p)+' · B'; }
+    return `<div class="player-pill ${cls}" data-player="${escapeHtml(p)}">${label}</div>`;
+  }).join('');
+  pillsEl.querySelectorAll('.player-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const p = pill.dataset.player;
+      const cur = _equiposAsignacion[p];
+      if(!cur) _equiposAsignacion[p] = 'A';
+      else if(cur==='A') _equiposAsignacion[p] = 'B';
+      else delete _equiposAsignacion[p];
+      renderAsigPills();
+      renderAsigMetricas();
+    });
+  });
+}
+
+function renderAsigMetricas(){
+  const wrap = document.getElementById('eq-asig-metricas');
+  if(!wrap) return;
+  const eqA = _equiposSeleccion.filter(p => _equiposAsignacion[p]==='A');
+  const eqB = _equiposSeleccion.filter(p => _equiposAsignacion[p]==='B');
+  if(eqA.length === 0 || eqB.length === 0){
+    wrap.innerHTML = `<div class="empty-state" style="padding:24px;"><i class="ti ti-layout-distribute-horizontal"></i>Asigna al menos un jugador al equipo A y uno al B para ver la comparacion.</div>`;
+    return;
+  }
+  const m = calcularMetricasEquipos(STATE.matches, eqA, eqB);
+
+  function teamCard(label, data, cruzado, badge){
+    return `
+      <div class="card" style="border-top:3px solid ${badge==='A'?'var(--grass)':'var(--terra)'};padding:20px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <span class="team-badge-${badge}">${badge}</span>
+          <strong style="font-size:15px;">${data.jugadores.map(j=>dn(j)).join(', ')}</strong>
+        </div>
+        <div class="grid-3" style="gap:10px;margin-bottom:14px;">
+          <div class="metric">
+            <p class="label">% Puntos promedio</p>
+            <p class="value" style="font-size:22px;">${fmtPct(data.pctPuntosPromedio)}</p>
+          </div>
+          <div class="metric">
+            <p class="label">Goles a favor (prom.)</p>
+            <p class="value" style="font-size:22px;color:var(--grass);">${fmtNum(data.golesAFavorPromedio,1)}</p>
+          </div>
+          <div class="metric">
+            <p class="label">Goles en contra (prom.)</p>
+            <p class="value" style="font-size:22px;color:var(--terra);">${fmtNum(data.golesEnContraPromedio,1)}</p>
+          </div>
+        </div>
+        <div class="grid-2" style="gap:10px;">
+          <div class="metric">
+            <p class="label">Cohesion interna &middot; G/(G+P) juntos</p>
+            <p class="value" style="font-size:22px;">${fmtPct(data.cohesion.ratioGPJuntos)}</p>
+            <p class="sub" style="font-size:11px;color:var(--muted);">${fmtNum(data.cohesion.partidosJuntosPromedio,0)} pj juntos en promedio entre pares</p>
+          </div>
+          <div class="metric">
+            <p class="label">G/(G+P) de este equipo contra el rival</p>
+            <p class="value" style="font-size:22px;">${fmtPct(cruzado.ratioGPContra)}</p>
+            <p class="sub" style="font-size:11px;color:var(--muted);">${cruzado.paresConDatos} de ${cruzado.pares} pares con historial</p>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  wrap.innerHTML = `
+    <div class="section-title">Comparacion entre equipos</div>
+    <div class="grid-2" style="margin-bottom:20px;">
+      ${teamCard('A', m.A, m.cruzadoAvsB, 'A')}
+      ${teamCard('B', m.B, m.cruzadoBvsA, 'B')}
+    </div>
+    <div class="card" style="margin-bottom:20px;">
+      <p class="label" style="font-size:11px;text-transform:uppercase;color:var(--muted);margin:0 0 12px;">Balance general del historial cruzado</p>
+      <div class="grid-2" style="gap:16px;">
+        <div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Equipo A jugando contra Equipo B</div>
+          <div style="height:20px;border-radius:4px;overflow:hidden;display:flex;border:1px solid var(--line);">
+            ${m.cruzadoAvsB.ratioGPContra !== null ? `
+              <div style="width:${(m.cruzadoAvsB.ratioGPContra*100).toFixed(1)}%;background:var(--grass);"></div>
+              <div style="flex:1;background:var(--terra-soft);"></div>
+            ` : '<div style="flex:1;background:var(--line);"></div>'}
+          </div>
+          <div style="font-size:12px;color:var(--ink-soft);margin-top:4px;">G/(G+P): <strong>${fmtPct(m.cruzadoAvsB.ratioGPContra)}</strong></div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Equipo B jugando contra Equipo A</div>
+          <div style="height:20px;border-radius:4px;overflow:hidden;display:flex;border:1px solid var(--line);">
+            ${m.cruzadoBvsA.ratioGPContra !== null ? `
+              <div style="width:${(m.cruzadoBvsA.ratioGPContra*100).toFixed(1)}%;background:var(--grass);"></div>
+              <div style="flex:1;background:var(--terra-soft);"></div>
+            ` : '<div style="flex:1;background:var(--line);"></div>'}
+          </div>
+          <div style="font-size:12px;color:var(--ink-soft);margin-top:4px;">G/(G+P): <strong>${fmtPct(m.cruzadoBvsA.ratioGPContra)}</strong></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+
+
+let _colorSort = {key:'total', dir:-1};
+
+function renderColorView(el){
+  const general = statsColorGeneral(STATE.matches);
+  const jugadoresConPartidos = STATE.players.filter(j => STATE.matches.some(m => j in m.lineup));
+  const porJugador = jugadoresConPartidos.map(j => statsColorJugador(STATE.matches, j));
+
+  el.innerHTML = `
+    <div class="section-title">Balance general por color</div>
+    <div class="grid-2" style="margin-bottom:28px;">
+      <div class="card" style="border-left:4px solid var(--ink);">
+        <p class="label" style="margin:0 0 10px;">Equipo Blanco &middot; ${general.blanco.total} partidos</p>
+        <div style="display:flex;gap:18px;margin-bottom:10px;">
+          <div><span class="g" style="font-family:var(--font-display);font-size:22px;font-weight:600;">${general.blanco.G}</span><div style="font-size:11px;color:var(--muted);">Ganados</div></div>
+          <div><span class="e" style="font-family:var(--font-display);font-size:22px;font-weight:600;">${general.blanco.E}</span><div style="font-size:11px;color:var(--muted);">Empatados</div></div>
+          <div><span class="p" style="font-family:var(--font-display);font-size:22px;font-weight:600;">${general.blanco.P}</span><div style="font-size:11px;color:var(--muted);">Perdidos</div></div>
+        </div>
+        <p style="margin:0;font-size:13px;color:var(--ink-soft);">Ratio G/(G+P): <strong style="color:var(--ink);">${fmtPct(general.blanco.ratioGP)}</strong></p>
+      </div>
+      <div class="card" style="border-left:4px solid var(--grass); background:#1a1a1a;">
+        <p class="label" style="margin:0 0 10px;color:#bbb;">Equipo Negro &middot; ${general.negro.total} partidos</p>
+        <div style="display:flex;gap:18px;margin-bottom:10px;">
+          <div><span style="font-family:var(--font-display);font-size:22px;font-weight:600;color:#8fbf85;">${general.negro.G}</span><div style="font-size:11px;color:#999;">Ganados</div></div>
+          <div><span style="font-family:var(--font-display);font-size:22px;font-weight:600;color:#d6bd72;">${general.negro.E}</span><div style="font-size:11px;color:#999;">Empatados</div></div>
+          <div><span style="font-family:var(--font-display);font-size:22px;font-weight:600;color:#d98f78;">${general.negro.P}</span><div style="font-size:11px;color:#999;">Perdidos</div></div>
+        </div>
+        <p style="margin:0;font-size:13px;color:#ccc;">Ratio G/(G+P): <strong style="color:#fff;">${fmtPct(general.negro.ratioGP)}</strong></p>
+      </div>
+    </div>
+
+    <div class="section-title">Por jugador &middot; % de partidos en cada color y rendimiento</div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div class="table-scroll">
+        <table class="stat-table" id="color-table"></table>
+      </div>
+    </div>
+  `;
+  renderColorTable(porJugador);
+}
+
+const COLOR_COLS = [
+  {key:'jugador', label:'Jugador'},
+  {key:'total', label:'PJ'},
+  {key:'pctBlanco', label:'% Blanco / Negro'},
+  {key:'ratioBlanco', label:'Ratio G/(G+P) Blanco'},
+  {key:'ratioNegro', label:'Ratio G/(G+P) Negro'}
+];
+
+function renderColorTable(porJugador){
+  const sorted = porJugador.slice().sort((a,b) => {
+    let av, bv;
+    if(_colorSort.key==='jugador'){ return _colorSort.dir*(a.jugador.localeCompare(b.jugador)); }
+    if(_colorSort.key==='ratioBlanco'){ av=a.blanco.ratioGP; bv=b.blanco.ratioGP; }
+    else if(_colorSort.key==='ratioNegro'){ av=a.negro.ratioGP; bv=b.negro.ratioGP; }
+    else if(_colorSort.key==='pctBlanco'){ av=a.pctBlanco; bv=b.pctBlanco; }
+    else { av=a.total; bv=b.total; }
+    if(av===null) av=-Infinity; if(bv===null) bv=-Infinity;
+    return _colorSort.dir*(av-bv);
+  });
+  const table = document.getElementById('color-table');
+  table.innerHTML = `
+    <thead><tr>
+      ${COLOR_COLS.map(c => `<th class="${c.key!=='jugador'&&c.key!=='pctBlanco'?'num':''} sortable" data-key="${c.key}">${c.label}${_colorSort.key===c.key?'<span class="sort-arrow">'+(_colorSort.dir===1?'▲':'▼')+'</span>':''}</th>`).join('')}
+    </tr></thead>
+    <tbody>
+      ${sorted.map(s => `
+        <tr>
+          <td class="rank-name">${dn(s.jugador)}</td>
+          <td class="num">${s.total}</td>
+          <td style="min-width:160px;">
+            <div class="color-bar" title="${fmtPct(s.pctBlanco)} blanco / ${fmtPct(s.pctNegro)} negro">
+              <div class="color-bar-blanco" style="width:${(s.pctBlanco*100).toFixed(1)}%;"></div>
+              <div class="color-bar-negro" style="width:${(s.pctNegro*100).toFixed(1)}%;"></div>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:3px;">${fmtPct(s.pctBlanco)} / ${fmtPct(s.pctNegro)}</div>
+          </td>
+          <td class="num">${fmtPct(s.blanco.ratioGP)}</td>
+          <td class="num">${fmtPct(s.negro.ratioGP)}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  `;
+  table.querySelectorAll('th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.key;
+      if(_colorSort.key===key) _colorSort.dir *= -1;
+      else _colorSort = {key, dir: key==='jugador'?1:-1};
+      renderColorTable(porJugador);
+    });
+  });
+}
+
+
+let _adminTab = 'cargar';
+let _nuevoPartido = { date: '', golesBlanco: '', golesNegro: '', lineup: {} };
+
+function renderAdminView(el){
+  if(!STATE.isAdmin){
+    el.innerHTML = `
+      <div class="section-title">Acceso administrador</div>
+      <div class="card" style="max-width:340px;">
+        <label class="field-label">Contrasena</label>
+        <input type="password" id="admin-pass" style="width:100%;margin-bottom:12px;" placeholder="••••••••">
+        <button class="btn" id="admin-login" style="width:100%;">Ingresar</button>
+        <p id="admin-error" style="color:var(--terra);font-size:13px;margin:10px 0 0;display:none;">Contrasena incorrecta.</p>
+      </div>
+    `;
+    document.getElementById('admin-login').addEventListener('click', () => {
+      const val = document.getElementById('admin-pass').value;
+      if(val === ADMIN_PASS){
+        STATE.isAdmin = true;
+        renderAdminView(el);
+      } else {
+        document.getElementById('admin-error').style.display = 'block';
+      }
+    });
+    document.getElementById('admin-pass').addEventListener('keydown', (e) => {
+      if(e.key === 'Enter') document.getElementById('admin-login').click();
+    });
+    return;
+  }
+
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <div class="section-title" style="margin:0;">Panel de administracion</div>
+      <button class="btn secondary" id="admin-logout">Salir</button>
+    </div>
+    ${!storageAvailable() ? `<div class="card" style="background:var(--gold-soft);border-color:var(--gold);margin-bottom:18px;"><p style="margin:0;font-size:13px;color:var(--gold);">⚠ Modo local: los cambios se guardan en el navegador de este dispositivo (localStorage). Para compartir cambios con otros, usá el artifact en la conversacion de Claude o exportá un backup.</p></div>` : ''}
+    <div class="tabs" style="margin-bottom:20px;">
+      <button class="tab-btn ${_adminTab==='cargar'?'active':''}" data-admintab="cargar">Cargar partido</button>
+      <button class="tab-btn ${_adminTab==='historial'?'active':''}" data-admintab="historial">Historial / editar</button>
+      <button class="tab-btn ${_adminTab==='jugadores'?'active':''}" data-admintab="jugadores">Jugadores</button>
+      <button class="tab-btn ${_adminTab==='backup'?'active':''}" data-admintab="backup">Backup</button>
+    </div>
+    <div id="admin-content"></div>
+  `;
+  document.getElementById('admin-logout').addEventListener('click', () => {
+    STATE.isAdmin = false;
+    renderAdminView(el);
+  });
+  el.querySelectorAll('[data-admintab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _adminTab = btn.dataset.admintab;
+      renderAdminView(el);
+    });
+  });
+  const content = document.getElementById('admin-content');
+  if(_adminTab==='cargar') renderAdminCargar(content);
+  else if(_adminTab==='historial') renderAdminHistorial(content);
+  else if(_adminTab==='jugadores') renderAdminJugadores(content);
+  else if(_adminTab==='backup') renderAdminBackup(content);
+}
+
+function renderAdminBackup(content){
+  content.innerHTML = `
+    <div class="card" style="margin-bottom:20px;">
+      <p class="label" style="margin:0 0 10px;">Exportar datos</p>
+      <p style="font-size:13px;color:var(--ink-soft);margin:0 0 14px;">Descarga un archivo JSON con todos los jugadores y partidos. Sirve como respaldo o para pasar los datos a otro lado.</p>
+      <button class="btn" id="bk-export">Descargar backup (.json)</button>
+    </div>
+    <div class="card">
+      <p class="label" style="margin:0 0 10px;">Importar datos</p>
+      <p style="font-size:13px;color:var(--ink-soft);margin:0 0 14px;">
+        Reemplaza todos los jugadores y partidos actuales por los del archivo elegido. Esta accion no se puede deshacer.
+      </p>
+      <input type="file" id="bk-import-file" accept="application/json" style="margin-bottom:12px;">
+      <br>
+      <button class="btn danger" id="bk-import-btn">Reemplazar datos con este archivo</button>
+      <p id="bk-error" style="color:var(--terra);font-size:13px;margin:10px 0 0;display:none;"></p>
+    </div>
+  `;
+  document.getElementById('bk-export').addEventListener('click', () => {
+    const payload = JSON.stringify({players: STATE.players, matches: STATE.matches, playerInfo: STATE.playerInfo || {}}, null, 2);
+    const blob = new Blob([payload], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'futbol_dm_backup_' + new Date().toISOString().slice(0,10) + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+  document.getElementById('bk-import-btn').addEventListener('click', () => {
+    const errEl = document.getElementById('bk-error');
+    const fileInput = document.getElementById('bk-import-file');
+    const file = fileInput.files[0];
+    if(!file){ errEl.textContent='Elegi un archivo primero.'; errEl.style.display='block'; return; }
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try{
+        const parsed = JSON.parse(e.target.result);
+        if(!Array.isArray(parsed.players) || !Array.isArray(parsed.matches)) throw new Error('formato invalido');
+        if(!confirm('Esto va a reemplazar todos los datos actuales ('+STATE.matches.length+' partidos) por los del archivo ('+parsed.matches.length+' partidos). Confirmar?')) return;
+        STATE.players = parsed.players;
+        STATE.matches = parsed.matches;
+        STATE.playerInfo = parsed.playerInfo || {};
+        const ok = await saveData();
+        if(ok){ showToast('Datos importados correctamente.'); renderAdminBackup(content); updateHeaderMeta(); }
+      }catch(err){
+        errEl.textContent = 'El archivo no tiene el formato esperado.';
+        errEl.style.display = 'block';
+      }
+    };
+    reader.readAsText(file);
+  });
+}
+
+function renderAdminCargar(content){
+  const ordenados = jugadoresPorPartidos(STATE.players);
+  if(!_nuevoPartido.date){
+    const d = new Date();
+    _nuevoPartido.date = d.toISOString().slice(0,10);
+  }
+  content.innerHTML = `
+    <div class="card" style="margin-bottom:20px;">
+      <div class="grid-2" style="margin-bottom:14px;">
+        <div>
+          <label class="field-label">Fecha</label>
+          <input type="date" id="np-fecha" value="${_nuevoPartido.date}" style="width:100%;">
+        </div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <label class="field-label">Goles Blanco</label>
+          <input type="number" id="np-blanco" min="0" value="${_nuevoPartido.golesBlanco}" style="width:100%;">
+        </div>
+        <div>
+          <label class="field-label">Goles Negro</label>
+          <input type="number" id="np-negro" min="0" value="${_nuevoPartido.golesNegro}" style="width:100%;">
+        </div>
+      </div>
+    </div>
+    <div class="section-title">Formaciones (click para asignar: blanco / negro / no jugo)</div>
+    <input type="text" class="search-input" id="np-search" placeholder="Buscar jugador…" style="margin-bottom:12px;">
+    <div class="player-pill-list" id="np-pills" style="margin-bottom:8px;"></div>
+    <div style="display:flex;gap:14px;margin:14px 0 22px;font-size:12px;color:var(--muted);">
+      <span><span class="streak-chip" style="background:#fff;border:1px solid var(--ink);color:var(--ink);">B</span> Blanco</span>
+      <span><span class="streak-chip" style="background:var(--ink);color:#fff;">N</span> Negro</span>
+      <span><span class="streak-chip chip-X">—</span> No jugo</span>
+    </div>
+    <div class="card" style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-size:13px;color:var(--muted);">
+        Blanco: <strong style="color:var(--ink);" id="np-count-blanco">0</strong> jugadores &middot;
+        Negro: <strong style="color:var(--ink);" id="np-count-negro">0</strong> jugadores
+      </div>
+      <button class="btn" id="np-add-player">Agregar jugador nuevo</button>
+    </div>
+    <button class="btn" id="np-guardar" style="width:100%;">Guardar partido</button>
+    <p id="np-error" style="color:var(--terra);font-size:13px;margin:10px 0 0;display:none;"></p>
+  `;
+
+  function renderPills(filterText){
+    const ft = (filterText||'').trim().toLowerCase();
+    const filtered = ft ? ordenados.filter(p=>p.toLowerCase().includes(ft)) : ordenados;
+    const pillsEl = document.getElementById('np-pills');
+    pillsEl.innerHTML = filtered.map(p => {
+      const v = _nuevoPartido.lineup[p];
+      let cls = 'pill-team-none', label = dn(p);
+      if(v===0){ cls='pill-team-blanco'; label = dn(p)+' · B'; }
+      else if(v===1){ cls='pill-team-negro'; label = dn(p)+' · N'; }
+      return `<div class="player-pill ${cls}" data-player="${escapeHtml(p)}">${label}</div>`;
+    }).join('');
+    pillsEl.querySelectorAll('.player-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        const p = pill.dataset.player;
+        const cur = _nuevoPartido.lineup[p];
+        if(cur===undefined) _nuevoPartido.lineup[p] = 0;
+        else if(cur===0) _nuevoPartido.lineup[p] = 1;
+        else delete _nuevoPartido.lineup[p];
+        renderPills(document.getElementById('np-search').value);
+        updateCounts();
+      });
+    });
+  }
+  function updateCounts(){
+    const vals = Object.values(_nuevoPartido.lineup);
+    document.getElementById('np-count-blanco').textContent = vals.filter(v=>v===0).length;
+    document.getElementById('np-count-negro').textContent = vals.filter(v=>v===1).length;
+  }
+  renderPills('');
+  updateCounts();
+  document.getElementById('np-search').addEventListener('input', (e)=>renderPills(e.target.value));
+  document.getElementById('np-fecha').addEventListener('change', (e)=>{ _nuevoPartido.date = e.target.value; });
+  document.getElementById('np-blanco').addEventListener('input', (e)=>{ _nuevoPartido.golesBlanco = e.target.value; });
+  document.getElementById('np-negro').addEventListener('input', (e)=>{ _nuevoPartido.golesNegro = e.target.value; });
+  document.getElementById('np-add-player').addEventListener('click', async () => {
+    const name = prompt('Nombre del nuevo jugador:');
+    if(name && name.trim()){
+      const trimmed = name.trim();
+      if(STATE.players.includes(trimmed)){ showToast('Ese jugador ya existe.'); return; }
+      STATE.players.push(trimmed);
+      await saveData();
+      renderAdminCargar(content);
+      showToast('Jugador agregado: '+trimmed);
+    }
+  });
+  document.getElementById('np-guardar').addEventListener('click', async () => {
+    const errEl = document.getElementById('np-error');
+    const gb = parseInt(_nuevoPartido.golesBlanco, 10);
+    const gn = parseInt(_nuevoPartido.golesNegro, 10);
+    if(!_nuevoPartido.date){ errEl.textContent='Falta la fecha.'; errEl.style.display='block'; return; }
+    if(isNaN(gb) || isNaN(gn) || gb<0 || gn<0){ errEl.textContent='Los goles deben ser numeros validos.'; errEl.style.display='block'; return; }
+    const vals = Object.values(_nuevoPartido.lineup);
+    if(vals.filter(v=>v===0).length===0 || vals.filter(v=>v===1).length===0){
+      errEl.textContent='Tiene que haber al menos un jugador en cada equipo.';
+      errEl.style.display='block';
+      return;
+    }
+    errEl.style.display='none';
+    STATE.matches.push({
+      date: _nuevoPartido.date,
+      golesBlanco: gb,
+      golesNegro: gn,
+      lineup: {..._nuevoPartido.lineup}
+    });
+    STATE.matches.sort((a,b)=> a.date.localeCompare(b.date));
+    const ok = await saveData();
+    if(ok){
+      showToast('Partido guardado.');
+      _nuevoPartido = { date:'', golesBlanco:'', golesNegro:'', lineup:{} };
+      renderAdminCargar(content);
+      updateHeaderMeta();
+    }
+  });
+}
+
+let _histPage = 0;
+const HIST_PAGE_SIZE = 20;
+let _histEditIdx = null;
+
+function renderAdminHistorial(content){
+  const sorted = STATE.matches.map((m,i)=>({m,i})).sort((a,b)=>b.m.date.localeCompare(a.m.date));
+  const totalPages = Math.max(1, Math.ceil(sorted.length / HIST_PAGE_SIZE));
+  if(_histPage >= totalPages) _histPage = totalPages-1;
+  const pageItems = sorted.slice(_histPage*HIST_PAGE_SIZE, _histPage*HIST_PAGE_SIZE + HIST_PAGE_SIZE);
+
+  content.innerHTML = `
+    <div id="hist-edit-wrap"></div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div class="table-scroll">
+        <table class="stat-table">
+          <thead><tr><th>Fecha</th><th class="num">Blanco</th><th class="num">Negro</th><th class="num">Jugadores</th><th></th></tr></thead>
+          <tbody>
+            ${pageItems.map(({m,i}) => `<tr>
+                <td>${fmtDate(m.date)}</td>
+                <td class="num">${m.golesBlanco}</td>
+                <td class="num">${m.golesNegro}</td>
+                <td class="num">${Object.keys(m.lineup).length}</td>
+                <td style="display:flex;gap:6px;">
+                  <button class="btn secondary" data-editidx="${i}" style="padding:5px 10px;font-size:12px;">Ver / editar</button>
+                  <button class="btn danger" data-delidx="${i}" style="padding:5px 10px;font-size:12px;">Borrar</button>
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:13px;color:var(--muted);">
+      <span>Pagina ${_histPage+1} de ${totalPages} &middot; ${sorted.length} partidos en total</span>
+      <div style="display:flex;gap:8px;">
+        <button class="btn secondary" id="hist-prev" ${_histPage===0?'disabled':''} style="padding:6px 12px;font-size:12px;">Anterior</button>
+        <button class="btn secondary" id="hist-next" ${_histPage>=totalPages-1?'disabled':''} style="padding:6px 12px;font-size:12px;">Siguiente</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('hist-prev').addEventListener('click', () => { _histPage--; renderAdminHistorial(content); });
+  document.getElementById('hist-next').addEventListener('click', () => { _histPage++; renderAdminHistorial(content); });
+  content.querySelectorAll('[data-delidx]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const idx = parseInt(btn.dataset.delidx, 10);
+      const m = STATE.matches[idx];
+      if(!confirm('Borrar el partido del '+fmtDate(m.date)+'? Esta accion no se puede deshacer.')) return;
+      STATE.matches.splice(idx,1);
+      const ok = await saveData();
+      if(ok){ showToast('Partido borrado.'); renderAdminHistorial(content); updateHeaderMeta(); }
+    });
+  });
+  content.querySelectorAll('[data-editidx]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _histEditIdx = parseInt(btn.dataset.editidx, 10);
+      renderHistEditPanel(content);
+    });
+  });
+  renderHistEditPanel(content);
+}
+
+function renderHistEditPanel(content){
+  const wrap = document.getElementById('hist-edit-wrap');
+  if(_histEditIdx===null || !STATE.matches[_histEditIdx]){ wrap.innerHTML=''; return; }
+  const m = STATE.matches[_histEditIdx];
+  const ordenados = STATE.players.slice().sort((a,b)=>a.localeCompare(b));
+  wrap.innerHTML = `
+    <div class="card" style="margin-bottom:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <p class="label" style="margin:0;">Editando partido del ${fmtDate(m.date)}</p>
+        <button class="btn secondary" id="hist-edit-close" style="padding:5px 10px;font-size:12px;">Cerrar</button>
+      </div>
+      <div class="grid-2" style="margin-bottom:14px;">
+        <div><label class="field-label">Fecha</label><input type="date" id="he-fecha" value="${m.date}" style="width:100%;"></div>
+      </div>
+      <div class="grid-2" style="margin-bottom:14px;">
+        <div><label class="field-label">Goles Blanco</label><input type="number" id="he-blanco" min="0" value="${m.golesBlanco}" style="width:100%;"></div>
+        <div><label class="field-label">Goles Negro</label><input type="number" id="he-negro" min="0" value="${m.golesNegro}" style="width:100%;"></div>
+      </div>
+      <label class="field-label">Formaciones</label>
+      <div class="player-pill-list" id="he-pills" style="margin-bottom:14px;"></div>
+      <button class="btn" id="he-guardar" style="width:100%;">Guardar cambios</button>
+      <p id="he-error" style="color:var(--terra);font-size:13px;margin:10px 0 0;display:none;"></p>
+    </div>
+  `;
+  function renderHePills(){
+    document.getElementById('he-pills').innerHTML = ordenados.map(p => {
+      const v = m.lineup[p];
+      let cls = 'pill-team-none';
+      if(v===0) cls = 'pill-team-blanco';
+      else if(v===1) cls = 'pill-team-negro';
+      return `<div class="player-pill ${cls}" data-player="${escapeHtml(p)}">${dn(p)}${v===0?' · B':v===1?' · N':''}</div>`;
+    }).join('');
+    document.getElementById('he-pills').querySelectorAll('.player-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        const p = pill.dataset.player;
+        const cur = m.lineup[p];
+        if(cur===undefined) m.lineup[p] = 0;
+        else if(cur===0) m.lineup[p] = 1;
+        else delete m.lineup[p];
+        renderHePills();
+      });
+    });
+  }
+  renderHePills();
+  document.getElementById('hist-edit-close').addEventListener('click', () => { _histEditIdx=null; renderHistEditPanel(content); });
+  document.getElementById('he-guardar').addEventListener('click', async () => {
+    const errEl = document.getElementById('he-error');
+    const gb = parseInt(document.getElementById('he-blanco').value, 10);
+    const gn = parseInt(document.getElementById('he-negro').value, 10);
+    const fecha = document.getElementById('he-fecha').value;
+    if(!fecha){ errEl.textContent='Falta la fecha.'; errEl.style.display='block'; return; }
+    if(isNaN(gb)||isNaN(gn)||gb<0||gn<0){ errEl.textContent='Los goles deben ser numeros validos.'; errEl.style.display='block'; return; }
+    const vals = Object.values(m.lineup);
+    if(vals.filter(v=>v===0).length===0 || vals.filter(v=>v===1).length===0){
+      errEl.textContent='Tiene que haber al menos un jugador en cada equipo.'; errEl.style.display='block'; return;
+    }
+    errEl.style.display='none';
+    m.date = fecha; m.golesBlanco = gb; m.golesNegro = gn;
+    STATE.matches.sort((a,b)=>a.date.localeCompare(b.date));
+    const ok = await saveData();
+    if(ok){ showToast('Partido actualizado.'); _histEditIdx=null; renderAdminHistorial(content); updateHeaderMeta(); }
+  });
+}
+
+
+let _ajEditando = null; // key del jugador que se está editando
+
+function renderAdminJugadores(content){
+  const ordenados = STATE.players.slice().sort((a,b)=>a.localeCompare(b));
+  content.innerHTML = `
+    <div class="card" style="margin-bottom:20px;">
+      <label class="field-label">Agregar jugador nuevo</label>
+      <div style="display:flex;gap:10px;">
+        <input type="text" id="aj-name" placeholder="Clave interna del jugador (ej: Gonzo)" style="flex:1;">
+        <button class="btn" id="aj-add">Agregar</button>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin:8px 0 0;">La clave interna identifica al jugador en los partidos y no puede cambiarse después. Después podés cargar nombre completo desde la tabla.</p>
+    </div>
+    <div id="aj-edit-wrap" style="margin-bottom:20px;"></div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div class="table-scroll">
+        <table class="stat-table" id="aj-table">
+          <thead><tr>
+            <th>Jugador</th>
+            <th>Nombre mostrado</th>
+            <th class="num">PJ</th>
+            <th></th>
+          </tr></thead>
+          <tbody>
+            ${ordenados.map(p => {
+              const j = STATE.matches.filter(m => p in m.lineup).length;
+              const display = displayName(p);
+              const isSame = display === p;
+              return `<tr data-key="${escapeHtml(p)}">
+                <td style="font-family:var(--font-mono);font-size:12px;color:var(--muted);">${escapeHtml(p)}</td>
+                <td class="rank-name" style="${isSame?'color:var(--muted);font-style:italic;':''}">${isSame ? '(sin datos)' : escapeHtml(display)}</td>
+                <td class="num">${j}</td>
+                <td><button class="btn secondary" data-edit="${escapeHtml(p)}" style="padding:4px 10px;font-size:12px;">Editar</button></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('aj-add').addEventListener('click', async () => {
+    const input = document.getElementById('aj-name');
+    const name = input.value.trim();
+    if(!name) return;
+    if(STATE.players.includes(name)){ showToast('Ese jugador ya existe.'); return; }
+    STATE.players.push(name);
+    const ok = await saveData();
+    if(ok){ showToast('Jugador agregado: '+name); _ajEditando = name; renderAdminJugadores(content); }
+  });
+
+  content.querySelectorAll('[data-edit]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _ajEditando = btn.dataset.edit;
+      renderAjEditForm(document.getElementById('aj-edit-wrap'), content);
+      btn.closest('tr').scrollIntoView({behavior:'smooth', block:'nearest'});
+    });
+  });
+
+  if(_ajEditando && STATE.players.includes(_ajEditando)){
+    renderAjEditForm(document.getElementById('aj-edit-wrap'), content);
+  }
+}
+
+function renderAjEditForm(wrap, content){
+  if(!_ajEditando){ wrap.innerHTML=''; return; }
+  const key = _ajEditando;
+  const info = STATE.playerInfo[key] || {};
+  const nombre = info.nombre || '';
+  const apellido = info.apellido || '';
+  const traidoPor = info.traidoPor || '';
+
+  // opciones para "quien lo trajo": jugadores que tienen nombre y apellido cargados
+  const conNombre = STATE.players
+    .filter(p => {
+      const i = STATE.playerInfo[p];
+      return i && (i.nombre || i.apellido);
+    })
+    .sort((a,b) => displayName(a).localeCompare(displayName(b)));
+
+  const preview = (() => {
+    const n = (nombre || key).trim();
+    const ap = (apellido || '').trim();
+    const tp = (traidoPor || '').trim();
+    const primer = tp ? tp.split(/\s+/)[0] : '';
+    let d = n;
+    if(ap) d += ' ' + ap;
+    if(primer) d += ' (' + primer + ')';
+    return d;
+  })();
+
+  wrap.innerHTML = `
+    <div class="card" style="border-left:3px solid var(--grass);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div>
+          <p class="label" style="margin:0 0 2px;">Editando: <strong>${escapeHtml(key)}</strong></p>
+          <p style="margin:0;font-size:12px;color:var(--muted);">Vista previa: <strong style="color:var(--ink);">${escapeHtml(preview)}</strong></p>
+        </div>
+        <button class="btn secondary" id="aj-edit-close" style="padding:5px 12px;font-size:12px;">Cerrar</button>
+      </div>
+      <div class="grid-3" style="gap:12px;margin-bottom:14px;">
+        <div>
+          <label class="field-label">Nombre</label>
+          <input type="text" id="aj-nombre" value="${escapeHtml(nombre)}" placeholder="${escapeHtml(key)}" style="width:100%;">
+        </div>
+        <div>
+          <label class="field-label">Apellido</label>
+          <input type="text" id="aj-apellido" value="${escapeHtml(apellido)}" placeholder="(opcional)" style="width:100%;">
+        </div>
+        <div>
+          <label class="field-label">Quien lo trajo</label>
+          <select id="aj-traido" style="width:100%;">
+            <option value="">— nadie / es del DM —</option>
+            ${conNombre.map(p => {
+              const full = displayName(p);
+              const info2 = STATE.playerInfo[p] || {};
+              const fullName = ((info2.nombre||p)+' '+(info2.apellido||'')).trim();
+              return `<option value="${escapeHtml(fullName)}" ${traidoPor===fullName?'selected':''}>${escapeHtml(full)}</option>`;
+            }).join('')}
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn" id="aj-guardar-info">Guardar</button>
+        <button class="btn secondary" id="aj-borrar-info" style="color:var(--terra);">Borrar datos</button>
+      </div>
+    </div>
+  `;
+
+  // Preview en tiempo real
+  function actualizarPreview(){
+    const n = (document.getElementById('aj-nombre').value || key).trim();
+    const ap = document.getElementById('aj-apellido').value.trim();
+    const tp = document.getElementById('aj-traido').value.trim();
+    const primer = tp ? tp.split(/\s+/)[0] : '';
+    let d = n; if(ap) d += ' '+ap; if(primer) d += ' ('+primer+')';
+    wrap.querySelector('strong[style*="var(--ink)"]').textContent = d;
+  }
+  ['aj-nombre','aj-apellido','aj-traido'].forEach(id => {
+    document.getElementById(id).addEventListener('input', actualizarPreview);
+    document.getElementById(id).addEventListener('change', actualizarPreview);
+  });
+
+  document.getElementById('aj-edit-close').addEventListener('click', () => {
+    _ajEditando = null; wrap.innerHTML='';
+  });
+  document.getElementById('aj-guardar-info').addEventListener('click', async () => {
+    STATE.playerInfo[key] = {
+      nombre: document.getElementById('aj-nombre').value.trim(),
+      apellido: document.getElementById('aj-apellido').value.trim(),
+      traidoPor: document.getElementById('aj-traido').value.trim()
+    };
+    const ok = await saveData();
+    if(ok){ showToast('Datos guardados.'); renderAdminJugadores(content); }
+  });
+  document.getElementById('aj-borrar-info').addEventListener('click', async () => {
+    if(!confirm('Borrar los datos de nombre/apellido/traidor de '+key+'?')) return;
+    delete STATE.playerInfo[key];
+    const ok = await saveData();
+    if(ok){ showToast('Datos borrados.'); renderAdminJugadores(content); }
+  });
+}
+
+boot();
+
+</script>
+</body>
+</html>
