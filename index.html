@@ -648,18 +648,40 @@ function displayName(key){
   return display;
 }
 
+/* ============== SUPABASE CONFIG ============== */
+const SUPABASE_URL = 'https://mkrdcsirdyspxucugacm.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1rcmRjc2lyZHlzcHh1Y3VnYWNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MjQ5NTAsImV4cCI6MjA5OTMwMDk1MH0.cAcAUSo5GMO4XxlAzH_RfiIRKPaFlqqneqHWvRJdgUM';
+
+const SB_HEADERS = {
+  'Content-Type': 'application/json',
+  'apikey': SUPABASE_ANON,
+  'Authorization': 'Bearer ' + SUPABASE_ANON,
+  'Prefer': 'return=minimal'
+};
+
+async function sbFetch(path, opts={}){
+  const res = await fetch(SUPABASE_URL + '/rest/v1' + path, {
+    headers: {...SB_HEADERS, ...(opts.headers||{})},
+    ...opts
+  });
+  if(!res.ok){
+    const err = await res.text();
+    throw new Error(`Supabase error ${res.status}: ${err}`);
+  }
+  if(res.status === 204) return null;
+  return res.json();
+}
+
+/* ============== PERSISTENCIA LOCAL (fallback) ============== */
 const LS_KEY = 'futboldm_data_v1';
-// Versión del seed: si el localStorage tiene datos de una versión anterior del seed, se reemplaza
 const SEED_VERSION = SEED_DATA.matches.length + '_' + Object.keys(SEED_DATA.playerInfo || {}).length;
 
 function localStorageAvailable(){
   try{ localStorage.setItem('_test','1'); localStorage.removeItem('_test'); return true; }catch(e){ return false; }
 }
-
 function storageAvailable(){
   return typeof window.storage !== 'undefined' && window.storage && typeof window.storage.get === 'function';
 }
-
 function lsLoad(){
   if(!localStorageAvailable()) return null;
   try{
@@ -670,7 +692,6 @@ function lsLoad(){
     return d;
   }catch(e){ return null; }
 }
-
 function lsSave(data){
   if(!localStorageAvailable()) return;
   try{
@@ -679,72 +700,185 @@ function lsSave(data){
   }catch(e){}
 }
 
-function seedIsNewer(stored){
-  // El seed es más nuevo si tiene más partidos, o mismos partidos pero más playerInfo
-  const storedVer = stored._seedVersion || '';
-  return storedVer !== SEED_VERSION && (
-    SEED_DATA.matches.length > (stored.matches || []).length ||
-    Object.keys(SEED_DATA.playerInfo || {}).length > Object.keys(stored.playerInfo || {}).length
-  );
-}
+/* ============== CARGA Y GUARDADO DE DATOS ============== */
 
 async function loadData(){
-  // Prioridad 1: window.storage (Claude.ai, compartido entre usuarios)
-  if(storageAvailable()){
-    try{
-      const res = await window.storage.get('futboldm:data', true);
-      if(res && res.value){
-        const parsed = JSON.parse(res.value);
-        if(Array.isArray(parsed.players) && Array.isArray(parsed.matches)){
-          // Si el seed tiene playerInfo más completo, lo fusionamos sin pisar lo que el usuario editó
-          const mergedPlayerInfo = Object.assign({}, SEED_DATA.playerInfo || {}, parsed.playerInfo || {});
-          STATE.players = parsed.players;
-          STATE.matches = parsed.matches;
-          STATE.playerInfo = mergedPlayerInfo;
-          lsSave({players: STATE.players, matches: STATE.matches, playerInfo: STATE.playerInfo});
-          return;
-        }
+  // Prioridad 1: Supabase (fuente de verdad cuando hay conexión)
+  try{
+    const [playersRows, playerInfoRows, matchesRows, lineupRows] = await Promise.all([
+      sbFetch('/players?select=key&order=key'),
+      sbFetch('/player_info?select=player_key,nombre,apellido,traido_por'),
+      sbFetch('/matches?select=id,date,goles_blanco,goles_negro&order=date'),
+      sbFetch('/lineup?select=match_id,player_key,equipo')
+    ]);
+
+    if(playersRows && matchesRows && playersRows.length > 0){
+      // Reconstruir el formato interno desde las tablas relacionales
+      STATE.players = playersRows.map(r => r.key);
+
+      const lineupByMatch = {};
+      for(const l of lineupRows){
+        if(!lineupByMatch[l.match_id]) lineupByMatch[l.match_id] = {};
+        lineupByMatch[l.match_id][l.player_key] = l.equipo;
       }
-    }catch(e){}
+      STATE.matches = matchesRows.map(m => ({
+        id: m.id,
+        date: m.date,
+        golesBlanco: m.goles_blanco,
+        golesNegro: m.goles_negro,
+        lineup: lineupByMatch[m.id] || {}
+      }));
+
+      const piMap = {};
+      for(const pi of playerInfoRows){
+        piMap[pi.player_key] = {
+          nombre: pi.nombre || '',
+          apellido: pi.apellido || '',
+          traidoPor: pi.traido_por || ''
+        };
+      }
+      // Fusionar con seed: seed como base, Supabase tiene prioridad
+      STATE.playerInfo = Object.assign({}, SEED_DATA.playerInfo || {}, piMap);
+
+      lsSave({players: STATE.players, matches: STATE.matches, playerInfo: STATE.playerInfo});
+      return;
+    }
+
+    // Si Supabase está vacío, es la primera vez — migrar el seed
+    if(playersRows && playersRows.length === 0){
+      await migrateSeededToSupabase();
+      return;
+    }
+  }catch(e){
+    console.warn('Supabase no disponible, usando fallback local:', e.message);
   }
-  // Prioridad 2: localStorage
+
+  // Prioridad 2: localStorage (fallback offline)
   const ls = lsLoad();
-  if(ls && !seedIsNewer(ls)){
-    // Fusionar playerInfo del seed con lo guardado (seed como base, lo guardado tiene prioridad)
+  if(ls){
     const mergedPlayerInfo = Object.assign({}, SEED_DATA.playerInfo || {}, ls.playerInfo || {});
     STATE.players = ls.players;
     STATE.matches = ls.matches;
     STATE.playerInfo = mergedPlayerInfo;
-    if(storageAvailable()) await saveData();
     return;
   }
-  // Prioridad 3: seed (primera vez, o seed más nuevo)
+
+  // Prioridad 3: seed (primera vez sin conexión)
   STATE.players = SEED_DATA.players.slice();
   STATE.matches = SEED_DATA.matches.slice();
   STATE.playerInfo = Object.assign({}, SEED_DATA.playerInfo || {});
-  await saveData();
+}
+
+async function migrateSeededToSupabase(){
+  // Sube todos los datos del seed a Supabase (solo se llama cuando la BD está vacía)
+  showToast('Primera vez: subiendo datos a Supabase…');
+  STATE.players = SEED_DATA.players.slice();
+  STATE.matches = SEED_DATA.matches.slice();
+  STATE.playerInfo = Object.assign({}, SEED_DATA.playerInfo || {});
+
+  // Insertar players
+  await sbFetch('/players', {
+    method: 'POST',
+    headers: {'Prefer': 'return=minimal'},
+    body: JSON.stringify(STATE.players.map(k => ({key: k})))
+  });
+
+  // Insertar player_info
+  const piRows = Object.entries(STATE.playerInfo).map(([k,v]) => ({
+    player_key: k, nombre: v.nombre||'', apellido: v.apellido||'', traido_por: v.traidoPor||''
+  }));
+  if(piRows.length){
+    await sbFetch('/player_info', { method:'POST', body: JSON.stringify(piRows) });
+  }
+
+  // Insertar matches + lineup en lotes
+  for(const m of STATE.matches){
+    const [matchRow] = await sbFetch('/matches?select=id', {
+      method: 'POST',
+      headers: {'Prefer': 'return=representation'},
+      body: JSON.stringify({date: m.date, goles_blanco: m.golesBlanco, goles_negro: m.golesNegro})
+    });
+    m.id = matchRow.id;
+    const lineupRows = Object.entries(m.lineup).map(([k,eq]) => ({
+      match_id: matchRow.id, player_key: k, equipo: eq
+    }));
+    if(lineupRows.length){
+      await sbFetch('/lineup', { method:'POST', body: JSON.stringify(lineupRows) });
+    }
+  }
+  lsSave({players: STATE.players, matches: STATE.matches, playerInfo: STATE.playerInfo});
+  showToast('Datos migrados a Supabase correctamente.');
 }
 
 async function saveData(){
-  const payload = {
-    players: STATE.players,
-    matches: STATE.matches,
-    playerInfo: STATE.playerInfo
-  };
-  // Siempre guardar en localStorage (funciona en cualquier entorno)
-  lsSave(payload);
-  // También en window.storage si está disponible
-  if(storageAvailable()){
-    try{
-      await window.storage.set('futboldm:data', JSON.stringify(payload), true);
-      return true;
-    }catch(e){
-      showToast('No se pudo guardar en storage. Los datos quedan en localStorage del navegador.');
-      return true; // localStorage sí se guardó
-    }
-  }
-  return true; // localStorage es suficiente
+  // Siempre guardar en localStorage como caché
+  lsSave({players: STATE.players, matches: STATE.matches, playerInfo: STATE.playerInfo});
+  return true;
 }
+
+// Guardar jugador nuevo en Supabase
+async function sbAddPlayer(key){
+  try{
+    await sbFetch('/players', { method:'POST', body: JSON.stringify({key}) });
+  }catch(e){ console.warn('sbAddPlayer error:', e.message); }
+}
+
+// Guardar/actualizar playerInfo en Supabase
+async function sbSavePlayerInfo(key, info){
+  try{
+    await sbFetch('/player_info', {
+      method: 'POST',
+      headers: {'Prefer': 'resolution=merge-duplicates,return=minimal'},
+      body: JSON.stringify({
+        player_key: key, nombre: info.nombre||'', apellido: info.apellido||'', traido_por: info.traidoPor||''
+      })
+    });
+  }catch(e){ console.warn('sbSavePlayerInfo error:', e.message); }
+}
+
+// Guardar partido nuevo en Supabase, devuelve el id generado
+async function sbAddMatch(match){
+  try{
+    const [row] = await sbFetch('/matches?select=id', {
+      method: 'POST',
+      headers: {'Prefer': 'return=representation'},
+      body: JSON.stringify({date: match.date, goles_blanco: match.golesBlanco, goles_negro: match.golesNegro})
+    });
+    const lineupRows = Object.entries(match.lineup).map(([k,eq]) => ({
+      match_id: row.id, player_key: k, equipo: eq
+    }));
+    if(lineupRows.length){
+      await sbFetch('/lineup', { method:'POST', body: JSON.stringify(lineupRows) });
+    }
+    return row.id;
+  }catch(e){ console.warn('sbAddMatch error:', e.message); return null; }
+}
+
+// Borrar partido en Supabase (lineup se borra por cascade)
+async function sbDeleteMatch(id){
+  try{
+    await sbFetch('/matches?id=eq.' + id, { method:'DELETE' });
+  }catch(e){ console.warn('sbDeleteMatch error:', e.message); }
+}
+
+// Actualizar partido existente en Supabase
+async function sbUpdateMatch(match){
+  try{
+    await sbFetch('/matches?id=eq.' + match.id, {
+      method: 'PATCH',
+      body: JSON.stringify({date: match.date, goles_blanco: match.golesBlanco, goles_negro: match.golesNegro})
+    });
+    // Borrar lineup viejo y reinsertar
+    await sbFetch('/lineup?match_id=eq.' + match.id, { method:'DELETE' });
+    const lineupRows = Object.entries(match.lineup).map(([k,eq]) => ({
+      match_id: match.id, player_key: k, equipo: eq
+    }));
+    if(lineupRows.length){
+      await sbFetch('/lineup', { method:'POST', body: JSON.stringify(lineupRows) });
+    }
+  }catch(e){ console.warn('sbUpdateMatch error:', e.message); }
+}
+
 
 function showToast(msg){
   const t = document.getElementById('toast');
@@ -1691,12 +1825,23 @@ function renderAdminBackup(content){
       try{
         const parsed = JSON.parse(e.target.result);
         if(!Array.isArray(parsed.players) || !Array.isArray(parsed.matches)) throw new Error('formato invalido');
-        if(!confirm('Esto va a reemplazar todos los datos actuales ('+STATE.matches.length+' partidos) por los del archivo ('+parsed.matches.length+' partidos). Confirmar?')) return;
+        if(!confirm('Esto va a reemplazar todos los datos actuales ('+STATE.matches.length+' partidos) por los del archivo ('+parsed.matches.length+' partidos). Tambien se reemplazaran los datos en Supabase. Confirmar?')) return;
         STATE.players = parsed.players;
         STATE.matches = parsed.matches;
         STATE.playerInfo = parsed.playerInfo || {};
         const ok = await saveData();
-        if(ok){ showToast('Datos importados correctamente.'); renderAdminBackup(content); updateHeaderMeta(); }
+        if(ok){
+          showToast('Importando a Supabase...');
+          // Limpiar Supabase y re-migrar
+          try{
+            await sbFetch('/lineup?id=neq.00000000-0000-0000-0000-000000000000', {method:'DELETE'});
+            await sbFetch('/matches?id=neq.00000000-0000-0000-0000-000000000000', {method:'DELETE'});
+            await sbFetch('/player_info?player_key=neq._', {method:'DELETE'});
+            await sbFetch('/players?key=neq._', {method:'DELETE'});
+            await migrateSeededToSupabase();
+          }catch(err){ console.warn('Error migrando a Supabase:', err); }
+          showToast('Datos importados correctamente.'); renderAdminBackup(content); updateHeaderMeta();
+        }
       }catch(err){
         errEl.textContent = 'El archivo no tiene el formato esperado.';
         errEl.style.display = 'block';
@@ -1791,6 +1936,7 @@ function renderAdminCargar(content){
       if(STATE.players.includes(trimmed)){ showToast('Ese jugador ya existe.'); return; }
       STATE.players.push(trimmed);
       await saveData();
+      await sbAddPlayer(trimmed);
       renderAdminCargar(content);
       showToast('Jugador agregado: '+trimmed);
     }
@@ -1808,15 +1954,18 @@ function renderAdminCargar(content){
       return;
     }
     errEl.style.display='none';
-    STATE.matches.push({
+    const newMatch = {
       date: _nuevoPartido.date,
       golesBlanco: gb,
       golesNegro: gn,
       lineup: {..._nuevoPartido.lineup}
-    });
+    };
+    STATE.matches.push(newMatch);
     STATE.matches.sort((a,b)=> a.date.localeCompare(b.date));
     const ok = await saveData();
     if(ok){
+      // Guardar en Supabase en paralelo (no bloquea la UI)
+      sbAddMatch(newMatch).then(id => { if(id) newMatch.id = id; });
       showToast('Partido guardado.');
       _nuevoPartido = { date:'', golesBlanco:'', golesNegro:'', lineup:{} };
       renderAdminCargar(content);
@@ -1871,9 +2020,13 @@ function renderAdminHistorial(content){
       const idx = parseInt(btn.dataset.delidx, 10);
       const m = STATE.matches[idx];
       if(!confirm('Borrar el partido del '+fmtDate(m.date)+'? Esta accion no se puede deshacer.')) return;
+      const matchId = m.id;
       STATE.matches.splice(idx,1);
       const ok = await saveData();
-      if(ok){ showToast('Partido borrado.'); renderAdminHistorial(content); updateHeaderMeta(); }
+      if(ok){
+        if(matchId) sbDeleteMatch(matchId);
+        showToast('Partido borrado.'); renderAdminHistorial(content); updateHeaderMeta();
+      }
     });
   });
   content.querySelectorAll('[data-editidx]').forEach(btn => {
@@ -1945,7 +2098,10 @@ function renderHistEditPanel(content){
     m.date = fecha; m.golesBlanco = gb; m.golesNegro = gn;
     STATE.matches.sort((a,b)=>a.date.localeCompare(b.date));
     const ok = await saveData();
-    if(ok){ showToast('Partido actualizado.'); _histEditIdx=null; renderAdminHistorial(content); updateHeaderMeta(); }
+    if(ok){
+      if(m.id) sbUpdateMatch(m);
+      showToast('Partido actualizado.'); _histEditIdx=null; renderAdminHistorial(content); updateHeaderMeta();
+    }
   });
 }
 
@@ -1998,7 +2154,10 @@ function renderAdminJugadores(content){
     if(STATE.players.includes(name)){ showToast('Ese jugador ya existe.'); return; }
     STATE.players.push(name);
     const ok = await saveData();
-    if(ok){ showToast('Jugador agregado: '+name); _ajEditando = name; renderAdminJugadores(content); }
+    if(ok){
+      sbAddPlayer(name);
+      showToast('Jugador agregado: '+name); _ajEditando = name; renderAdminJugadores(content);
+    }
   });
 
   content.querySelectorAll('[data-edit]').forEach(btn => {
@@ -2102,19 +2261,26 @@ function renderAjEditForm(wrap, content){
     _ajEditando = null; wrap.innerHTML='';
   });
   document.getElementById('aj-guardar-info').addEventListener('click', async () => {
-    STATE.playerInfo[key] = {
+    const info = {
       nombre: document.getElementById('aj-nombre').value.trim(),
       apellido: document.getElementById('aj-apellido').value.trim(),
       traidoPor: document.getElementById('aj-traido').value.trim()
     };
+    STATE.playerInfo[key] = info;
     const ok = await saveData();
-    if(ok){ showToast('Datos guardados.'); renderAdminJugadores(content); }
+    if(ok){
+      sbSavePlayerInfo(key, info);
+      showToast('Datos guardados.'); renderAdminJugadores(content);
+    }
   });
   document.getElementById('aj-borrar-info').addEventListener('click', async () => {
     if(!confirm('Borrar los datos de nombre/apellido/traidor de '+key+'?')) return;
     delete STATE.playerInfo[key];
     const ok = await saveData();
-    if(ok){ showToast('Datos borrados.'); renderAdminJugadores(content); }
+    if(ok){
+      try{ await sbFetch('/player_info?player_key=eq.'+encodeURIComponent(key), {method:'DELETE'}); }catch(e){}
+      showToast('Datos borrados.'); renderAdminJugadores(content);
+    }
   });
 }
 
