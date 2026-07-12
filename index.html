@@ -746,7 +746,12 @@ async function loadData(){
 
     // Si Supabase está vacío, es la primera vez — migrar el seed
     if(playersRows && playersRows.length === 0){
-      await migrateSeededToSupabase();
+      try{
+        await migrateSeededToSupabase();
+      }catch(e){
+        console.error('Migración falló, usando seed directo:', e);
+        // No relanzar — la app sigue funcionando con los datos en memoria
+      }
       return;
     }
   }catch(e){
@@ -770,44 +775,68 @@ async function loadData(){
 }
 
 async function migrateSeededToSupabase(){
-  // Sube todos los datos del seed a Supabase (solo se llama cuando la BD está vacía)
   showToast('Primera vez: subiendo datos a Supabase…');
   STATE.players = SEED_DATA.players.slice();
   STATE.matches = SEED_DATA.matches.slice();
   STATE.playerInfo = Object.assign({}, SEED_DATA.playerInfo || {});
 
-  // Insertar players
-  await sbFetch('/players', {
-    method: 'POST',
-    headers: {'Prefer': 'return=minimal'},
-    body: JSON.stringify(STATE.players.map(k => ({key: k})))
-  });
+  try{
+    // 1. Insertar players en un solo request (upsert para evitar duplicados)
+    await sbFetch('/players', {
+      method: 'POST',
+      headers: {'Prefer': 'resolution=ignore-duplicates,return=minimal'},
+      body: JSON.stringify(STATE.players.map(k => ({key: k})))
+    });
 
-  // Insertar player_info
-  const piRows = Object.entries(STATE.playerInfo).map(([k,v]) => ({
-    player_key: k, nombre: v.nombre||'', apellido: v.apellido||'', traido_por: v.traidoPor||''
-  }));
-  if(piRows.length){
-    await sbFetch('/player_info', { method:'POST', body: JSON.stringify(piRows) });
-  }
+    // 2. Insertar player_info en un solo request
+    const piRows = Object.entries(STATE.playerInfo).map(([k,v]) => ({
+      player_key: k, nombre: v.nombre||'', apellido: v.apellido||'', traido_por: v.traidoPor||''
+    }));
+    if(piRows.length){
+      await sbFetch('/player_info', {
+        method: 'POST',
+        headers: {'Prefer': 'resolution=ignore-duplicates,return=minimal'},
+        body: JSON.stringify(piRows)
+      });
+    }
 
-  // Insertar matches + lineup en lotes
-  for(const m of STATE.matches){
-    const [matchRow] = await sbFetch('/matches?select=id', {
+    // 3. Insertar todos los matches en un solo request
+    const matchRows = STATE.matches.map(m => ({
+      date: m.date, goles_blanco: m.golesBlanco, goles_negro: m.golesNegro
+    }));
+    const insertedMatches = await sbFetch('/matches?select=id,date,goles_blanco,goles_negro', {
       method: 'POST',
       headers: {'Prefer': 'return=representation'},
-      body: JSON.stringify({date: m.date, goles_blanco: m.golesBlanco, goles_negro: m.golesNegro})
+      body: JSON.stringify(matchRows)
     });
-    m.id = matchRow.id;
-    const lineupRows = Object.entries(m.lineup).map(([k,eq]) => ({
-      match_id: matchRow.id, player_key: k, equipo: eq
-    }));
-    if(lineupRows.length){
-      await sbFetch('/lineup', { method:'POST', body: JSON.stringify(lineupRows) });
+
+    // Mapear los IDs devueltos por Supabase a los matches en STATE
+    // Supabase devuelve en el mismo orden que se insertaron
+    const allLineupRows = [];
+    insertedMatches.forEach((row, i) => {
+      STATE.matches[i].id = row.id;
+      Object.entries(STATE.matches[i].lineup).forEach(([playerKey, equipo]) => {
+        allLineupRows.push({ match_id: row.id, player_key: playerKey, equipo });
+      });
+    });
+
+    // 4. Insertar todo el lineup en lotes de 500 (límite de Supabase)
+    const BATCH = 500;
+    for(let i = 0; i < allLineupRows.length; i += BATCH){
+      await sbFetch('/lineup', {
+        method: 'POST',
+        headers: {'Prefer': 'return=minimal'},
+        body: JSON.stringify(allLineupRows.slice(i, i + BATCH))
+      });
     }
+
+    lsSave({players: STATE.players, matches: STATE.matches, playerInfo: STATE.playerInfo});
+    showToast('Datos migrados a Supabase correctamente.');
+  }catch(e){
+    console.error('Error en migración:', e);
+    showToast('Error al migrar: ' + e.message + ' — revisá la consola.');
+    throw e; // re-lanzar para que loadData sepa que falló
   }
-  lsSave({players: STATE.players, matches: STATE.matches, playerInfo: STATE.playerInfo});
-  showToast('Datos migrados a Supabase correctamente.');
 }
 
 async function saveData(){
@@ -1759,7 +1788,7 @@ function renderAdminView(el){
       <div class="section-title" style="margin:0;">Panel de administracion</div>
       <button class="btn secondary" id="admin-logout">Salir</button>
     </div>
-    ${!storageAvailable() ? `<div class="card" style="background:var(--gold-soft);border-color:var(--gold);margin-bottom:18px;"><p style="margin:0;font-size:13px;color:var(--gold);">⚠ Modo local: los cambios se guardan en el navegador de este dispositivo (localStorage). Para compartir cambios con otros, usá el artifact en la conversacion de Claude o exportá un backup.</p></div>` : ''}
+    
     <div class="tabs" style="margin-bottom:20px;">
       <button class="tab-btn ${_adminTab==='cargar'?'active':''}" data-admintab="cargar">Cargar partido</button>
       <button class="tab-btn ${_adminTab==='historial'?'active':''}" data-admintab="historial">Historial / editar</button>
