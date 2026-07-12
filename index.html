@@ -670,7 +670,9 @@ async function sbFetch(path, opts={}){
     throw new Error(`Supabase error ${res.status}: ${err}`);
   }
   if(res.status === 204) return null;
-  return res.json();
+  const text = await res.text();
+  if(!text || text.trim() === '') return null;
+  return JSON.parse(text);
 }
 
 /* ============== PERSISTENCIA LOCAL (fallback) ============== */
