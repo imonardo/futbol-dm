@@ -775,6 +775,17 @@ async function loadData(){
   STATE.playerInfo = Object.assign({}, SEED_DATA.playerInfo || {});
 }
 
+async function sbInsertBatch(path, rows, batchSize=50){
+  for(let i=0; i<rows.length; i+=batchSize){
+    const batch = rows.slice(i, i+batchSize);
+    await sbFetch(path, {
+      method: 'POST',
+      headers: {'Prefer': 'resolution=ignore-duplicates,return=minimal'},
+      body: JSON.stringify(batch)
+    });
+  }
+}
+
 async function migrateSeededToSupabase(){
   showToast('Primera vez: subiendo datos a Supabase…');
   STATE.players = SEED_DATA.players.slice();
@@ -782,61 +793,70 @@ async function migrateSeededToSupabase(){
   STATE.playerInfo = Object.assign({}, SEED_DATA.playerInfo || {});
 
   try{
-    // 1. Insertar players en un solo request (upsert para evitar duplicados)
-    await sbFetch('/players', {
-      method: 'POST',
-      headers: {'Prefer': 'resolution=ignore-duplicates,return=minimal'},
-      body: JSON.stringify(STATE.players.map(k => ({key: k})))
-    });
+    // 1. Players
+    console.log('Migrando players:', STATE.players.length);
+    await sbInsertBatch('/players', STATE.players.map(k => ({key: k})));
 
-    // 2. Insertar player_info en un solo request
+    // 2. Player info
     const piRows = Object.entries(STATE.playerInfo).map(([k,v]) => ({
       player_key: k, nombre: v.nombre||'', apellido: v.apellido||'', traido_por: v.traidoPor||''
     }));
-    if(piRows.length){
-      await sbFetch('/player_info', {
+    console.log('Migrando player_info:', piRows.length);
+    if(piRows.length) await sbInsertBatch('/player_info', piRows);
+
+    // 3. Matches — insertar de a 20 y capturar IDs
+    console.log('Migrando matches:', STATE.matches.length);
+    const allInsertedMatches = [];
+    const MBATCH = 20;
+    for(let i=0; i<STATE.matches.length; i+=MBATCH){
+      const batch = STATE.matches.slice(i, i+MBATCH).map(m => ({
+        date: m.date, goles_blanco: m.golesBlanco, goles_negro: m.golesNegro
+      }));
+      const inserted = await sbFetch('/matches?select=id,date', {
         method: 'POST',
-        headers: {'Prefer': 'resolution=ignore-duplicates,return=minimal'},
-        body: JSON.stringify(piRows)
+        headers: {'Prefer': 'return=representation'},
+        body: JSON.stringify(batch)
       });
+      allInsertedMatches.push(...inserted);
+      if(i % 100 === 0) console.log(`  matches ${i}/${STATE.matches.length}`);
     }
 
-    // 3. Insertar todos los matches en un solo request
-    const matchRows = STATE.matches.map(m => ({
-      date: m.date, goles_blanco: m.golesBlanco, goles_negro: m.golesNegro
-    }));
-    const insertedMatches = await sbFetch('/matches?select=id,date,goles_blanco,goles_negro', {
-      method: 'POST',
-      headers: {'Prefer': 'return=representation'},
-      body: JSON.stringify(matchRows)
-    });
+    // Mapear IDs: ordenar por date para hacer match con STATE.matches
+    // Supabase puede reordenar, así que mapeamos por date
+    const matchByDate = {};
+    for(const row of allInsertedMatches){
+      if(!matchByDate[row.date]) matchByDate[row.date] = [];
+      matchByDate[row.date].push(row.id);
+    }
+    // Asignar IDs a STATE.matches (por date en orden)
+    const dateCounters = {};
+    for(const m of STATE.matches){
+      const d = m.date;
+      dateCounters[d] = (dateCounters[d] || 0);
+      if(matchByDate[d] && matchByDate[d][dateCounters[d]]){
+        m.id = matchByDate[d][dateCounters[d]];
+        dateCounters[d]++;
+      }
+    }
 
-    // Mapear los IDs devueltos por Supabase a los matches en STATE
-    // Supabase devuelve en el mismo orden que se insertaron
+    // 4. Lineup — todos de una vez en lotes de 200
     const allLineupRows = [];
-    insertedMatches.forEach((row, i) => {
-      STATE.matches[i].id = row.id;
-      Object.entries(STATE.matches[i].lineup).forEach(([playerKey, equipo]) => {
-        allLineupRows.push({ match_id: row.id, player_key: playerKey, equipo });
-      });
-    });
-
-    // 4. Insertar todo el lineup en lotes de 500 (límite de Supabase)
-    const BATCH = 500;
-    for(let i = 0; i < allLineupRows.length; i += BATCH){
-      await sbFetch('/lineup', {
-        method: 'POST',
-        headers: {'Prefer': 'return=minimal'},
-        body: JSON.stringify(allLineupRows.slice(i, i + BATCH))
-      });
+    for(const m of STATE.matches){
+      if(!m.id) continue;
+      for(const [playerKey, equipo] of Object.entries(m.lineup)){
+        allLineupRows.push({match_id: m.id, player_key: playerKey, equipo});
+      }
     }
+    console.log('Migrando lineup:', allLineupRows.length);
+    await sbInsertBatch('/lineup', allLineupRows, 200);
 
     lsSave({players: STATE.players, matches: STATE.matches, playerInfo: STATE.playerInfo});
+    console.log('Migración completada.');
     showToast('Datos migrados a Supabase correctamente.');
   }catch(e){
     console.error('Error en migración:', e);
     showToast('Error al migrar: ' + e.message + ' — revisá la consola.');
-    throw e; // re-lanzar para que loadData sepa que falló
+    throw e;
   }
 }
 
