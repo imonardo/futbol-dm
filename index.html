@@ -708,14 +708,31 @@ function lsSave(data){
 async function loadData(){
   // Prioridad 1: Supabase (fuente de verdad cuando hay conexión)
   try{
+    // Cargar lineup en páginas de 1000 para evitar el límite de Supabase
+    async function fetchAllLineup(){
+      const all = [];
+      let offset = 0;
+      const pageSize = 1000;
+      while(true){
+        const page = await sbFetch(
+          `/lineup?select=match_id,player_key,equipo&limit=${pageSize}&offset=${offset}`
+        );
+        if(!page || page.length === 0) break;
+        all.push(...page);
+        if(page.length < pageSize) break;
+        offset += pageSize;
+      }
+      return all;
+    }
+
     const [playersRows, playerInfoRows, matchesRows, lineupRows] = await Promise.all([
       sbFetch('/players?select=key&order=key'),
       sbFetch('/player_info?select=player_key,nombre,apellido,traido_por'),
       sbFetch('/matches?select=id,date,goles_blanco,goles_negro&order=date'),
-      sbFetch('/lineup?select=match_id,player_key,equipo', {
-        headers: {'Range-Unit': 'items', 'Range': '0-9999'}
-      })
+      fetchAllLineup()
     ]);
+
+    console.log(`Supabase: ${playersRows?.length} players, ${matchesRows?.length} matches, ${lineupRows?.length} lineup rows`);
 
     if(playersRows && matchesRows && playersRows.length > 0){
       // Reconstruir el formato interno desde las tablas relacionales
