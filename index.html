@@ -712,7 +712,9 @@ async function loadData(){
       sbFetch('/players?select=key&order=key'),
       sbFetch('/player_info?select=player_key,nombre,apellido,traido_por'),
       sbFetch('/matches?select=id,date,goles_blanco,goles_negro&order=date'),
-      sbFetch('/lineup?select=match_id,player_key,equipo')
+      sbFetch('/lineup?select=match_id,player_key,equipo', {
+        headers: {'Range-Unit': 'items', 'Range': '0-9999'}
+      })
     ]);
 
     if(playersRows && matchesRows && playersRows.length > 0){
